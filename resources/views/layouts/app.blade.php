@@ -37,6 +37,12 @@
             <x-project-sidebar />
 
             <main id="main" tabindex="-1" class="min-w-0 flex-1 p-6">
+                @if (session('status'))
+                    <p role="status" class="mb-4 max-w-4xl rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-900">
+                        {{ session('status') }}
+                    </p>
+                @endif
+
                 {{ $slot }}
             </main>
         </div>

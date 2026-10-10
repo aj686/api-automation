@@ -6,10 +6,19 @@
     @else
         <ul class="space-y-0.5">
             @foreach ($projects as $project)
-                <li class="truncate rounded px-2 py-1 text-zinc-700">{{ $project->name }}</li>
+                @php($active = request()->route('project')?->is($project))
+                <li>
+                    <a href="{{ route('projects.show', $project) }}"
+                       @if ($active) aria-current="page" @endif
+                       @class([
+                           'block truncate rounded px-2 py-1',
+                           'bg-zinc-100 font-medium text-zinc-900' => $active,
+                           'text-zinc-700 hover:bg-zinc-50' => ! $active,
+                       ])>{{ $project->name }}</a>
+                </li>
             @endforeach
         </ul>
     @endif
 
-    <a href="{{ route('projects') }}" class="mt-3 inline-block rounded px-2 py-1 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900">+ New project</a>
+    <a href="{{ route('projects') }}#new-project" class="mt-3 inline-block rounded px-2 py-1 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900">+ New project</a>
 </aside>
