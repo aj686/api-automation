@@ -19,7 +19,7 @@
         </div>
         <div class="rounded border border-zinc-200 bg-white p-3">
             <dt class="text-zinc-500">Collections</dt>
-            <dd class="mt-1 tabular-nums">{{ $collectionCount }}</dd>
+            <dd class="mt-1 tabular-nums"><a href="{{ route('projects.collections', $project) }}" class="text-blue-700 hover:underline">{{ $collectionCount }}</a></dd>
         </div>
         <div class="rounded border border-zinc-200 bg-white p-3">
             <dt class="text-zinc-500">Latest run</dt>

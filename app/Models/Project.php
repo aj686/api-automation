@@ -21,6 +21,12 @@ class Project extends Model
         static::creating(function (Project $project) {
             $project->slug ??= Str::slug($project->name);
         });
+
+        // Delete collections through Eloquent first so their files are removed;
+        // the foreign-key cascade alone would leave them on disk.
+        static::deleting(function (Project $project) {
+            $project->collections()->get()->each->delete();
+        });
     }
 
     /**

@@ -19,8 +19,6 @@ use Illuminate\Support\Facades\DB;
  */
 class EnvironmentImporter
 {
-    private const SECRET_KEY_PATTERN = '/pass(word)?|secret|token|api[_-]?key|apikey|auth|cookie|session|private|credential/i';
-
     /**
      * @return array{added: int, updated: int, kept: int, secret_by_name: int}
      */
@@ -115,7 +113,7 @@ class EnvironmentImporter
             }
 
             $declaredSecret = ($row['type'] ?? null) === 'secret' || ($row['secret'] ?? false) === true;
-            $secretByName = ! $declaredSecret && preg_match(self::SECRET_KEY_PATTERN, $key) === 1;
+            $secretByName = ! $declaredSecret && preg_match(EnvironmentVariable::SECRET_KEY_PATTERN, $key) === 1;
 
             $variables[] = [
                 'key' => $key,

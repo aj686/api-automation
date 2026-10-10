@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Enums\EnvironmentType;
 use App\Exceptions\ImportException;
+use App\Livewire\Concerns\DiscardsUploads;
 use App\Models\Environment;
 use App\Models\EnvironmentVariable;
 use App\Models\Project;
@@ -12,7 +13,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
-use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
@@ -25,7 +25,7 @@ use Livewire\WithFileUploads;
  */
 class EnvironmentShow extends Component
 {
-    use WithFileUploads;
+    use DiscardsUploads, WithFileUploads;
 
     public Project $project;
 
@@ -226,7 +226,8 @@ class EnvironmentShow extends Component
 
             return;
         } finally {
-            $this->discardUpload();
+            $this->discardUpload($this->importFile);
+            $this->importFile = null;
         }
 
         $message = "Imported: {$counts['added']} added, {$counts['updated']} updated";
@@ -250,21 +251,6 @@ class EnvironmentShow extends Component
 
         session()->flash('status', "Deleted environment {$name} and its variables. Run history was kept.");
         $this->redirectRoute('projects.environments', $this->project);
-    }
-
-    /**
-     * The upload may hold real credentials, so it is removed at once rather
-     * than left for Livewire's 24-hour cleanup. Livewire also writes a
-     * `<file>.json` metadata file (original name, size, hash) beside it that
-     * TemporaryUploadedFile::delete() leaves behind; remove that too.
-     */
-    private function discardUpload(): void
-    {
-        $metaFile = FileUploadConfiguration::path($this->importFile->getFilename().'.json', false);
-
-        $this->importFile->delete();
-        FileUploadConfiguration::storage()->delete($metaFile);
-        $this->importFile = null;
     }
 
     private function variable(?int $id): EnvironmentVariable

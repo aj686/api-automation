@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Enums\CollectionKind;
+use App\Services\CollectionImporter;
 use Database\Factories\CollectionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -25,6 +27,11 @@ class Collection extends Model
     {
         static::creating(function (Collection $collection) {
             $collection->slug ??= Str::slug($collection->name);
+        });
+
+        // The database cascade cannot remove files, so the model does.
+        static::deleted(function (Collection $collection) {
+            Storage::disk(CollectionImporter::DISK)->delete($collection->stored_path);
         });
     }
 

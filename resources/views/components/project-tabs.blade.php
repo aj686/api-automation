@@ -5,7 +5,7 @@
     $tabs = [
         'overview' => ['Overview', route('projects.show', $project)],
         'environments' => ['Environments', route('projects.environments', $project)],
-        'collections' => ['Collections', null, 8],
+        'collections' => ['Collections', route('projects.collections', $project)],
         'runs' => ['Runs', null, 11],
     ];
 @endphp

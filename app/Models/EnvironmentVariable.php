@@ -30,6 +30,9 @@ class EnvironmentVariable extends Model
 
     public const MAX_VALUE_LENGTH = 8000;
 
+    /** Keys that look like credentials; used to suggest or force "secret". */
+    public const SECRET_KEY_PATTERN = '/pass(word)?|secret|token|api[_-]?key|apikey|auth|cookie|session|private|credential/i';
+
     /** What a stored secret looks like in the UI (plan section 13). */
     public const MASK = '********';
 
