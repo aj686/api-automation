@@ -28,4 +28,21 @@ enum RunStatus: string
     {
         return ! $this->isActive();
     }
+
+    /**
+     * Shown next to the word, never instead of it: status is never conveyed by
+     * colour or icon alone (master prompt section 76).
+     */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::Queued => '○',
+            self::Running => '↻',
+            self::Pass => '✓',
+            self::Fail => '✕',
+            self::Error => '⚠',
+            self::Timeout => '◷',
+            self::Cancelled => '⊘',
+        };
+    }
 }

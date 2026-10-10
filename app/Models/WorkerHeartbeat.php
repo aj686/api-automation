@@ -24,4 +24,22 @@ class WorkerHeartbeat extends Model
             'beat_at' => 'datetime',
         ];
     }
+
+    public static function beat(string $worker): void
+    {
+        static::updateOrCreate(['worker' => $worker], ['beat_at' => now()]);
+    }
+
+    /**
+     * The configured worker's heartbeat, or null if it never beat.
+     */
+    public static function forConfiguredWorker(): ?self
+    {
+        return static::where('worker', config('automation.worker.name'))->first();
+    }
+
+    public function isFresh(): bool
+    {
+        return $this->beat_at->gt(now()->subSeconds(config('automation.worker.stale_after_seconds')));
+    }
 }

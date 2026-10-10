@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Support\WorkerHeartbeatRecorder;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(WorkerHeartbeatRecorder::class);
     }
 
     /**
@@ -19,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Must not return false: the worker treats a false from a Looping
+        // listener as "pause" (Illuminate\Queue\Worker::daemonShouldRun).
+        Queue::looping(function (): void {
+            rescue(fn () => $this->app->make(WorkerHeartbeatRecorder::class)->beatIfDue());
+        });
     }
 }
