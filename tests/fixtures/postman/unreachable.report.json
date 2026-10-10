@@ -1,0 +1,101 @@
+{
+  "run": {
+    "meta": {
+      "collectionId": "f22b32f7-e792-41dc-8289-1c7eb989fd4f",
+      "collectionName": "Verify unreachable",
+      "started": 1791663169494,
+      "completed": 1791663169600,
+      "duration": 106
+    },
+    "summary": {
+      "iterations": {
+        "executed": 1,
+        "errors": 0
+      },
+      "executedRequests": {
+        "executed": 1,
+        "errors": 1
+      },
+      "prerequestScripts": {
+        "executed": 0,
+        "errors": 0
+      },
+      "postresponseScripts": {
+        "executed": 1,
+        "errors": 0
+      },
+      "tests": {
+        "executed": 1,
+        "failed": 1,
+        "passed": 0,
+        "skipped": 0
+      },
+      "timeStats": {
+        "responseAverage": 0,
+        "responseMin": 0,
+        "responseMax": 0,
+        "responseStandardDeviation": 0
+      }
+    },
+    "executions": [
+      {
+        "iterationCount": 0,
+        "requestExecuted": {
+          "id": "92bfa1c2-724e-4f5b-9106-db4f00f046b4",
+          "name": "Nowhere",
+          "url": {
+            "protocol": "http",
+            "path": [
+              "x"
+            ],
+            "host": [
+              "does-not-exist",
+              "invalid"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "tests": [
+          {
+            "name": "status is 200",
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "status is 200",
+              "message": "expected PostmanResponse{ …(5) } to have property 'code'",
+              "stack": "AssertionError: expected PostmanResponse{ …(5) } to have property 'code'\n   at Object.eval sandbox-script.js:1:1)"
+            },
+            "status": "failed"
+          }
+        ],
+        "errors": [
+          {
+            "errno": -3008,
+            "code": "ENOTFOUND",
+            "syscall": "getaddrinfo",
+            "hostname": "does-not-exist.invalid",
+            "name": "Error",
+            "message": "getaddrinfo ENOTFOUND does-not-exist.invalid",
+            "stack": "Error: getaddrinfo ENOTFOUND does-not-exist.invalid\n    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)",
+            "timestamp": 1791663169563,
+            "stacktrace": [
+              {
+                "fileName": "node:dns",
+                "lineNumber": 122,
+                "functionName": "GetAddrInfoReqWrap.onlookupall [as oncomplete]",
+                "typeName": "GetAddrInfoReqWrap",
+                "methodName": "onlookupall [as oncomplete]",
+                "columnNumber": 26,
+                "native": false
+              }
+            ],
+            "source": "request"
+          }
+        ]
+      }
+    ],
+    "runError": null
+  }
+}

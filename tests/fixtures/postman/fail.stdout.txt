@@ -1,0 +1,50 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+Verify fail
+
+Root Health
+
+  GET http://nginx/up?api_key=YOUR_API_KEY [200 OK, 1.07 KB, 51 ms]
+  1. expects 201
+  Pass  is html
+
+Root Missing
+
+  GET http://nginx/api/v1/nope [404 Not Found, 1.13 KB, 16 ms]
+  Pass  404 expected
+Generating run report [json]...
+Saving run report [json]...
+Report created successfully! Saved to: /tmp/pv/out/fail.report.json
+
+----------------------------------------------------------------------
+|                         |            executed |             failed |
+--------------------------+---------------------+---------------------
+|              iterations |                   1 |                  0 |
+--------------------------+---------------------+---------------------
+|                requests |                   2 |                  0 |
+--------------------------+---------------------+---------------------
+|            test-scripts |                   2 |                  0 |
+--------------------------+---------------------+---------------------
+|      prerequest-scripts |                   0 |                  0 |
+--------------------------+---------------------+---------------------
+|              assertions |                   3 |                  1 |
+----------------------------------------------------------------------
+| total run duration: 144 ms                                         |
+----------------------------------------------------------------------
+| total data received: 1.69 KB (approx)                              |
+----------------------------------------------------------------------
+| average response time: 33 ms [min: 16 ms, max: 51 ms, s.d.: 17 ms] |
+----------------------------------------------------------------------
+
+  #  failure         detail                                                
+                                                                           
+ 1.  AssertionError  expects 201                                           
+                     expected response to have status code 201 but got 200 
+                     at assertion:0 in test-script                         
+                     inside "Health"                                       
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command

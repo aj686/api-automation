@@ -1,0 +1,13 @@
+pass exit=0 report=yes
+fail exit=1 report=yes
+unreachable exit=1 report=yes
+scripterror exit=1 report=yes
+notests exit=0 report=yes
+requesttimeout exit=1 report=yes
+brokenjson exit=1 report=no
+placeholder secret found in: /tmp/pv/out/fail.report.json
+/tmp/pv/out/pass.report.json
+/tmp/pv/out/scripterror.report.json
+/tmp/pv/out/fail.stdout.txt
+/tmp/pv/out/pass.stdout.txt
+/tmp/pv/out/scripterror.stdout.txt

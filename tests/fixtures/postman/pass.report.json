@@ -1,0 +1,94 @@
+{
+  "run": {
+    "meta": {
+      "collectionId": "3a0b0f4f-85bb-4cee-8bb9-5a851e147662",
+      "collectionName": "Verify pass",
+      "started": 1791663162685,
+      "completed": 1791663162798,
+      "duration": 113
+    },
+    "summary": {
+      "iterations": {
+        "executed": 1,
+        "errors": 0
+      },
+      "executedRequests": {
+        "executed": 1,
+        "errors": 0
+      },
+      "prerequestScripts": {
+        "executed": 0,
+        "errors": 0
+      },
+      "postresponseScripts": {
+        "executed": 1,
+        "errors": 0
+      },
+      "tests": {
+        "executed": 2,
+        "failed": 0,
+        "passed": 2,
+        "skipped": 0
+      },
+      "timeStats": {
+        "responseAverage": 63,
+        "responseMin": 63,
+        "responseMax": 63,
+        "responseStandardDeviation": 0
+      }
+    },
+    "executions": [
+      {
+        "iterationCount": 0,
+        "requestExecuted": {
+          "id": "e83742cf-d26e-4cbf-ae49-2ae0976a2d01",
+          "name": "Health",
+          "url": {
+            "protocol": "http",
+            "path": [
+              "up"
+            ],
+            "host": [
+              "nginx"
+            ],
+            "query": [
+              {
+                "key": "api_key",
+                "value": "YOUR_API_KEY"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": {
+          "id": "cb85dbdc-2902-48d6-9050-7a7e20110159",
+          "_details": {
+            "name": "OK",
+            "detail": "Standard response for successful HTTP requests. The actual response will depend on the request method used. In a GET request, the response will contain an entity corresponding to the requested resource. In a POST request the response will contain an entity describing or containing the result of the action.",
+            "code": 200,
+            "standardName": "OK"
+          },
+          "status": "OK",
+          "code": 200,
+          "cookies": [],
+          "responseTime": 63,
+          "responseSize": 1835,
+          "downloadedBytes": 849
+        },
+        "tests": [
+          {
+            "name": "status is 200",
+            "status": "passed"
+          },
+          {
+            "name": "is html",
+            "status": "passed"
+          }
+        ],
+        "errors": []
+      }
+    ],
+    "runError": null
+  }
+}

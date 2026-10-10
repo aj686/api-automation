@@ -1,0 +1,59 @@
+#!/bin/sh
+# Stand-in for Postman CLI in integration tests (plan section 10, phase 9).
+# Replays reports captured from the real CLI (tests/fixtures/postman) and can
+# hang or ignore SIGTERM so cancel and timeout are testable without a network.
+# The mode comes from a "fake_mode" key in the collection file.
+
+FIXTURES="$(cd "$(dirname "$0")/../postman" && pwd)"
+
+if [ "${1:-}" = "--version" ]; then
+    echo "1.71.0"
+    exit 0
+fi
+
+collection="$3"
+report=""
+environment=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --reporter-json-export) report="$2"; shift ;;
+        -e) environment="$2"; shift ;;
+    esac
+    shift
+done
+
+mode=$(sed -n 's/.*"fake_mode" *: *"\([a-z]*\)".*/\1/p' "$collection" | head -n 1)
+
+replay() { # replay <fixture> <exit-code>
+    cat "$FIXTURES/$1.stdout.txt"
+    cp "$FIXTURES/$1.report.json" "$report"
+    exit "$2"
+}
+
+case "$mode" in
+    pass|notests) replay "$mode" 0 ;;
+    fail|unreachable|scripterror|requesttimeout) replay "$mode" 1 ;;
+    noreport)
+        echo "Error: collection could not be loaded" >&2
+        exit 1 ;;
+    echoenv)
+        # Prints the environment file and its mode, as a leak would.
+        echo "env-mode=$(stat -c %a "$environment")"
+        cat "$environment"
+        replay pass 0 ;;
+    hang)
+        # Like the real wrapper: ignores SIGTERM to itself, has a child doing the work.
+        trap '' TERM INT
+        sleep 600 &
+        wait $!
+        exit 1 ;;
+    stubborn)
+        # Nothing in the group reacts to SIGTERM; only SIGKILL stops it.
+        trap '' TERM INT
+        sh -c "trap '' TERM INT; sleep 600" &
+        wait $!
+        exit 1 ;;
+    *)
+        echo "fake-postman: unknown fake_mode '$mode'" >&2
+        exit 2 ;;
+esac

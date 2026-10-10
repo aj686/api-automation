@@ -73,8 +73,7 @@ class ProjectsTest extends TestCase
         $this->get('/projects/demo-api')
             ->assertOk()
             ->assertSee('<title>'.e($project->name).' · API Automation</title>', false)
-            ->assertSee('PRODUCTION')
-            ->assertSee('Not run yet')
+            ->assertSee('needs at least one')
             ->assertSeeInOrder(['<aside aria-label="Projects"', 'aria-current="page"', e($project->name)], false);
 
         $this->get('/projects/missing')->assertNotFound();

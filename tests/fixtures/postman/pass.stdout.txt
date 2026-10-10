@@ -1,0 +1,38 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+Verify pass
+
+Root Health
+
+  GET http://nginx/up?api_key=YOUR_API_KEY [200 OK, 1.07 KB, 63 ms]
+  Pass  status is 200
+  Pass  is html
+Generating run report [json]...
+Saving run report [json]...
+Report created successfully! Saved to: /tmp/pv/out/pass.report.json
+
+---------------------------------------------------------------------
+|                         |           executed |             failed |
+--------------------------+--------------------+---------------------
+|              iterations |                  1 |                  0 |
+--------------------------+--------------------+---------------------
+|                requests |                  1 |                  0 |
+--------------------------+--------------------+---------------------
+|            test-scripts |                  1 |                  0 |
+--------------------------+--------------------+---------------------
+|      prerequest-scripts |                  0 |                  0 |
+--------------------------+--------------------+---------------------
+|              assertions |                  2 |                  0 |
+---------------------------------------------------------------------
+| total run duration: 113 ms                                        |
+---------------------------------------------------------------------
+| total data received: 849 B (approx)                               |
+---------------------------------------------------------------------
+| average response time: 63 ms [min: 63 ms, max: 63 ms, s.d.: 0 us] |
+---------------------------------------------------------------------
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command

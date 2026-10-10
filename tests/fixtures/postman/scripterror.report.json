@@ -1,0 +1,94 @@
+{
+  "run": {
+    "meta": {
+      "collectionId": "d84fcd5b-541a-4ba5-8359-2a7f9fb7b263",
+      "collectionName": "Verify scripterror",
+      "started": 1791663172818,
+      "completed": 1791663172928,
+      "duration": 110
+    },
+    "summary": {
+      "iterations": {
+        "executed": 1,
+        "errors": 0
+      },
+      "executedRequests": {
+        "executed": 1,
+        "errors": 0
+      },
+      "prerequestScripts": {
+        "executed": 0,
+        "errors": 0
+      },
+      "postresponseScripts": {
+        "executed": 1,
+        "errors": 1
+      },
+      "tests": {
+        "executed": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "timeStats": {
+        "responseAverage": 57,
+        "responseMin": 57,
+        "responseMax": 57,
+        "responseStandardDeviation": 0
+      }
+    },
+    "executions": [
+      {
+        "iterationCount": 0,
+        "requestExecuted": {
+          "id": "72adfd2c-b96a-499e-84f3-9acfc3bd2a9f",
+          "name": "Health",
+          "url": {
+            "protocol": "http",
+            "path": [
+              "up"
+            ],
+            "host": [
+              "nginx"
+            ],
+            "query": [
+              {
+                "key": "api_key",
+                "value": "YOUR_API_KEY"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": {
+          "id": "13d3d7a0-66bf-4f7a-b718-411643743ef8",
+          "_details": {
+            "name": "OK",
+            "detail": "Standard response for successful HTTP requests. The actual response will depend on the request method used. In a GET request, the response will contain an entity corresponding to the requested resource. In a POST request the response will contain an entity describing or containing the result of the action.",
+            "code": 200,
+            "standardName": "OK"
+          },
+          "status": "OK",
+          "code": 200,
+          "cookies": [],
+          "responseTime": 57,
+          "responseSize": 1835,
+          "downloadedBytes": 849
+        },
+        "tests": [],
+        "errors": [
+          {
+            "type": "Error",
+            "name": "ReferenceError",
+            "message": "undefinedFunction is not defined",
+            "timestamp": 1791663172919,
+            "stacktrace": [],
+            "source": "post-response"
+          }
+        ]
+      }
+    ],
+    "runError": null
+  }
+}

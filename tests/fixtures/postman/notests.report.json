@@ -1,0 +1,80 @@
+{
+  "run": {
+    "meta": {
+      "collectionId": "9b457455-2729-404e-9ddd-d41ff26eb406",
+      "collectionName": "Verify notests",
+      "started": 1791663176228,
+      "completed": 1791663176290,
+      "duration": 62
+    },
+    "summary": {
+      "iterations": {
+        "executed": 1,
+        "errors": 0
+      },
+      "executedRequests": {
+        "executed": 1,
+        "errors": 0
+      },
+      "prerequestScripts": {
+        "executed": 0,
+        "errors": 0
+      },
+      "postresponseScripts": {
+        "executed": 0,
+        "errors": 0
+      },
+      "tests": {
+        "executed": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "timeStats": {
+        "responseAverage": 46,
+        "responseMin": 46,
+        "responseMax": 46,
+        "responseStandardDeviation": 0
+      }
+    },
+    "executions": [
+      {
+        "iterationCount": 0,
+        "requestExecuted": {
+          "id": "2b26e8d2-1205-4056-9018-1430d467f4c4",
+          "name": "Health",
+          "url": {
+            "protocol": "http",
+            "path": [
+              "up"
+            ],
+            "host": [
+              "nginx"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": {
+          "id": "21a9f0e2-8fda-465f-807e-26f226111373",
+          "_details": {
+            "name": "OK",
+            "detail": "Standard response for successful HTTP requests. The actual response will depend on the request method used. In a GET request, the response will contain an entity corresponding to the requested resource. In a POST request the response will contain an entity describing or containing the result of the action.",
+            "code": 200,
+            "standardName": "OK"
+          },
+          "status": "OK",
+          "code": 200,
+          "cookies": [],
+          "responseTime": 46,
+          "responseSize": 1835,
+          "downloadedBytes": 849
+        },
+        "tests": [],
+        "errors": []
+      }
+    ],
+    "runError": null
+  }
+}

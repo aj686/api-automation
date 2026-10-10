@@ -1,0 +1,119 @@
+{
+  "run": {
+    "meta": {
+      "collectionId": "da0fe050-e23b-4909-8ce4-24c3d70ae256",
+      "collectionName": "Verify requesttimeout",
+      "started": 1791663179709,
+      "completed": 1791663181786,
+      "duration": 2077
+    },
+    "summary": {
+      "iterations": {
+        "executed": 1,
+        "errors": 0
+      },
+      "executedRequests": {
+        "executed": 1,
+        "errors": 1
+      },
+      "prerequestScripts": {
+        "executed": 0,
+        "errors": 0
+      },
+      "postresponseScripts": {
+        "executed": 1,
+        "errors": 0
+      },
+      "tests": {
+        "executed": 1,
+        "failed": 1,
+        "passed": 0,
+        "skipped": 0
+      },
+      "timeStats": {
+        "responseAverage": 0,
+        "responseMin": 0,
+        "responseMax": 0,
+        "responseStandardDeviation": 0
+      }
+    },
+    "executions": [
+      {
+        "iterationCount": 0,
+        "requestExecuted": {
+          "id": "c6256b14-547a-409e-8962-23aa1f8320e9",
+          "name": "Blackhole",
+          "url": {
+            "protocol": "http",
+            "path": [
+              "x"
+            ],
+            "host": [
+              "10",
+              "255",
+              "255",
+              "1"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "tests": [
+          {
+            "name": "status is 200",
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "status is 200",
+              "message": "expected PostmanResponse{ …(5) } to have property 'code'",
+              "stack": "AssertionError: expected PostmanResponse{ …(5) } to have property 'code'\n   at Object.eval sandbox-script.js:1:1)"
+            },
+            "status": "failed"
+          }
+        ],
+        "errors": [
+          {
+            "code": "ETIMEDOUT",
+            "connect": true,
+            "name": "Error",
+            "message": "ETIMEDOUT",
+            "stack": "Error: ETIMEDOUT\n    at Timeout.<anonymous> (/snapshot/postman-cli/dist/postman.bundled.js)\n    at listOnTimeout (node:internal/timers:605:17)\n    at process.processTimers (node:internal/timers:541:7)",
+            "timestamp": 1791663181739,
+            "stacktrace": [
+              {
+                "fileName": null,
+                "lineNumber": null,
+                "functionName": "",
+                "typeName": "Timeout",
+                "methodName": null,
+                "columnNumber": null,
+                "native": false
+              },
+              {
+                "fileName": "node:internal/timers",
+                "lineNumber": 605,
+                "functionName": "listOnTimeout",
+                "typeName": "Object",
+                "methodName": null,
+                "columnNumber": 17,
+                "native": false
+              },
+              {
+                "fileName": "node:internal/timers",
+                "lineNumber": 541,
+                "functionName": "process.processTimers",
+                "typeName": "process",
+                "methodName": "processTimers",
+                "columnNumber": 7,
+                "native": false
+              }
+            ],
+            "source": "request"
+          }
+        ]
+      }
+    ],
+    "runError": null
+  }
+}

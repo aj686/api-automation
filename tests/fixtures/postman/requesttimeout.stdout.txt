@@ -1,0 +1,48 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+Verify requesttimeout
+
+Root Blackhole
+
+  GET http://10.255.255.1/x [errored]
+     ETIMEDOUT
+  2. status is 200
+Generating run report [json]...
+Saving run report [json]...
+Report created successfully! Saved to: /tmp/pv/out/requesttimeout.report.json
+
+-------------------------------------------------
+|                         | executed |   failed |
+--------------------------+----------+-----------
+|              iterations |        1 |        0 |
+--------------------------+----------+-----------
+|                requests |        1 |        1 |
+--------------------------+----------+-----------
+|            test-scripts |        1 |        0 |
+--------------------------+----------+-----------
+|      prerequest-scripts |        0 |        0 |
+--------------------------+----------+-----------
+|              assertions |        1 |        1 |
+-------------------------------------------------
+| total run duration: 2 s                       |
+-------------------------------------------------
+| total data received: 0 B (approx)             |
+-------------------------------------------------
+
+  #  failure         detail                                                   
+                                                                              
+ 1.  Error                                                                    
+                     ETIMEDOUT                                                
+                     at request                                               
+                     inside "Blackhole"                                       
+                                                                              
+ 2.  AssertionError  status is 200                                            
+                     expected PostmanResponse{ …(5) } to have property 'code' 
+                     at assertion:0 in test-script                            
+                     inside "Blackhole"                                       
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command

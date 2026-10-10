@@ -1,0 +1,9 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Error: collection could not be loaded
+  the file at "/tmp/tmp.DT88qliwbR/brokenjson.json" does not contain valid JSON data
+  Unexpected token 'n' at 1:2
+{not json
+ ^
+

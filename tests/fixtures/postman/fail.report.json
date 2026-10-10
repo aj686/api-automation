@@ -1,0 +1,144 @@
+{
+  "run": {
+    "meta": {
+      "collectionId": "58736dfb-d39e-4c67-90c5-390818ea9fde",
+      "collectionName": "Verify fail",
+      "started": 1791663165945,
+      "completed": 1791663166089,
+      "duration": 144
+    },
+    "summary": {
+      "iterations": {
+        "executed": 1,
+        "errors": 0
+      },
+      "executedRequests": {
+        "executed": 2,
+        "errors": 0
+      },
+      "prerequestScripts": {
+        "executed": 0,
+        "errors": 0
+      },
+      "postresponseScripts": {
+        "executed": 2,
+        "errors": 0
+      },
+      "tests": {
+        "executed": 3,
+        "failed": 1,
+        "passed": 2,
+        "skipped": 0
+      },
+      "timeStats": {
+        "responseAverage": 33.5,
+        "responseMin": 16,
+        "responseMax": 51,
+        "responseStandardDeviation": 17.5
+      }
+    },
+    "executions": [
+      {
+        "iterationCount": 0,
+        "requestExecuted": {
+          "id": "37d124f0-9fd3-4383-a552-3312716f1b46",
+          "name": "Health",
+          "url": {
+            "protocol": "http",
+            "path": [
+              "up"
+            ],
+            "host": [
+              "nginx"
+            ],
+            "query": [
+              {
+                "key": "api_key",
+                "value": "YOUR_API_KEY"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": {
+          "id": "9497e5e0-a92c-4a07-9f47-0c515ef37a6c",
+          "_details": {
+            "name": "OK",
+            "detail": "Standard response for successful HTTP requests. The actual response will depend on the request method used. In a GET request, the response will contain an entity corresponding to the requested resource. In a POST request the response will contain an entity describing or containing the result of the action.",
+            "code": 200,
+            "standardName": "OK"
+          },
+          "status": "OK",
+          "code": 200,
+          "cookies": [],
+          "responseTime": 51,
+          "responseSize": 1835,
+          "downloadedBytes": 849
+        },
+        "tests": [
+          {
+            "name": "expects 201",
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "expects 201",
+              "message": "expected response to have status code 201 but got 200",
+              "stack": "AssertionError: expected response to have status code 201 but got 200\n   at Object.eval sandbox-script.js:1:1)"
+            },
+            "status": "failed"
+          },
+          {
+            "name": "is html",
+            "status": "passed"
+          }
+        ],
+        "errors": []
+      },
+      {
+        "iterationCount": 0,
+        "requestExecuted": {
+          "id": "f49d3760-bec1-4485-8f1e-86e33b988277",
+          "name": "Missing",
+          "url": {
+            "protocol": "http",
+            "path": [
+              "api",
+              "v1",
+              "nope"
+            ],
+            "host": [
+              "nginx"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": {
+          "id": "3629a0ca-3f92-4dc3-a986-ec1e5fea1812",
+          "_details": {
+            "name": "Not Found",
+            "detail": "The requested resource could not be found but may be available again in the future. Subsequent requests by the client are permissible.",
+            "code": 404,
+            "standardName": "Not Found"
+          },
+          "status": "Not Found",
+          "code": 404,
+          "cookies": [],
+          "responseTime": 16,
+          "responseSize": 10327,
+          "downloadedBytes": 884
+        },
+        "tests": [
+          {
+            "name": "404 expected",
+            "status": "passed"
+          }
+        ],
+        "errors": []
+      }
+    ],
+    "runError": null
+  }
+}

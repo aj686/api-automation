@@ -1,0 +1,48 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+Verify unreachable
+
+Root Nowhere
+
+  GET http://does-not-exist.invalid/x [errored]
+     getaddrinfo ENOTFOUND does-not-exist.invalid
+  2. status is 200
+Generating run report [json]...
+Saving run report [json]...
+Report created successfully! Saved to: /tmp/pv/out/unreachable.report.json
+
+-------------------------------------------------
+|                         | executed |   failed |
+--------------------------+----------+-----------
+|              iterations |        1 |        0 |
+--------------------------+----------+-----------
+|                requests |        1 |        1 |
+--------------------------+----------+-----------
+|            test-scripts |        1 |        0 |
+--------------------------+----------+-----------
+|      prerequest-scripts |        0 |        0 |
+--------------------------+----------+-----------
+|              assertions |        1 |        1 |
+-------------------------------------------------
+| total run duration: 106 ms                    |
+-------------------------------------------------
+| total data received: 0 B (approx)             |
+-------------------------------------------------
+
+  #  failure         detail                                                   
+                                                                              
+ 1.  Error                                                                    
+                     getaddrinfo ENOTFOUND does-not-exist.invalid             
+                     at request                                               
+                     inside "Nowhere"                                         
+                                                                              
+ 2.  AssertionError  status is 200                                            
+                     expected PostmanResponse{ …(5) } to have property 'code' 
+                     at assertion:0 in test-script                            
+                     inside "Nowhere"                                         
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command
