@@ -67,7 +67,7 @@ class ProjectShow extends Component
             return;
         }
 
-        session()->flash('status', 'Project saved.');
+        session()->now('status', 'Project saved.');
     }
 
     public function delete(): void

@@ -89,7 +89,8 @@ class ProjectsTest extends TestCase
             ->set('description', 'Updated')
             ->call('save')
             ->assertHasNoErrors()
-            ->assertNoRedirect();
+            ->assertNoRedirect()
+            ->assertSee('Project saved.');
 
         $this->assertSame('Demo API v2', $project->fresh()->name);
         $this->assertSame('Updated', $project->fresh()->description);

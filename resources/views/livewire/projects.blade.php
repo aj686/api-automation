@@ -1,4 +1,6 @@
 <div class="max-w-4xl">
+    <x-flash />
+
     <h1 class="mb-4 text-lg font-semibold">Projects</h1>
 
     @if ($projects->isNotEmpty())

@@ -1,21 +1,17 @@
 <div class="max-w-4xl">
+    <x-flash />
+
     <h1 class="text-lg font-semibold">{{ $project->name }}</h1>
     <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
 
-    {{-- Project sections from master prompt section 16; each is built in the phase shown. --}}
-    <nav aria-label="Project sections" class="mb-6 flex gap-1 border-b border-zinc-200 text-sm">
-        <span aria-current="page" class="border-b-2 border-zinc-900 px-3 py-2 font-medium">Overview</span>
-        <span class="px-3 py-2 text-zinc-400" title="Arrives in phase 7">Environments</span>
-        <span class="px-3 py-2 text-zinc-400" title="Arrives in phase 8">Collections</span>
-        <span class="px-3 py-2 text-zinc-400" title="Arrives in phase 11">Runs</span>
-    </nav>
+    <x-project-tabs :project="$project" active="overview" />
 
     <dl class="mb-8 grid grid-cols-3 gap-4 text-sm">
         <div class="rounded border border-zinc-200 bg-white p-3">
             <dt class="text-zinc-500">Environments</dt>
             <dd class="mt-1 flex flex-wrap gap-1">
                 @forelse ($environments as $environment)
-                    <span class="inline-flex items-center gap-1">{{ $environment->name }} <x-environment-badge :type="$environment->type" /></span>
+                    <a href="{{ route('projects.environments.show', [$project, $environment]) }}" class="inline-flex items-center gap-1 text-blue-700 hover:underline">{{ $environment->name }} <x-environment-badge :type="$environment->type" /></a>
                 @empty
                     <span class="text-zinc-500">None yet</span>
                 @endforelse

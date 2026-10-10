@@ -25,6 +25,14 @@ class EnvironmentVariable extends Model
     /** @use HasFactory<EnvironmentVariableFactory> */
     use HasFactory;
 
+    /** Shared by the UI forms and EnvironmentImporter. */
+    public const KEY_PATTERN = '/^[A-Za-z0-9_.\-]{1,100}$/';
+
+    public const MAX_VALUE_LENGTH = 8000;
+
+    /** What a stored secret looks like in the UI (plan section 13). */
+    public const MASK = '********';
+
     /**
      * Get the attributes that should be cast.
      *
