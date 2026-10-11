@@ -42,3 +42,20 @@ Thumbs.db
 
 # Windows "mark of the web" streams, saved as files over the WSL share.
 *:Zone.Identifier
+
+# Any env file except the placeholder template (.env.testing, .env.local …
+# would hold real database passwords).
+.env.*
+!.env.example
+
+# Keys, certificates and database dumps never belong in the repository.
+*.pem
+*.key
+*.p12
+*.pfx
+*.sql
+*.sql.gz
+*.dump
+
+# Personal Claude Code settings.
+/.claude/settings.local.json
