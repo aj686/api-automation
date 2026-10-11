@@ -36,52 +36,63 @@ custom scheduler, and no custom execution engine.
 
 ## How it works
 
+### The workflow
+
+You set a project up once, then run it as often as you like, by hand or from
+n8n. Every run ends up in the history with its full result.
+
 ```mermaid
-flowchart TB
-    subgraph browser["Browser"]
-        ui["Web UI<br/>pick project, environment, collection"]
-    end
+flowchart LR
+    project["1. Create a project<br/>one per API you test"]
+    envs["2. Add environments<br/>Local, Staging, Production …<br/>variables and secrets"]
+    coll["3. Import collections<br/>exported from Postman"]
+    run{"4. Start a run"}
+    manual["From the UI<br/>pick environment + collection,<br/>press Run"]
+    auto["From n8n<br/>POST /api/v1/runs"]
+    result["5. Result<br/>PASS, FAIL, ERROR,<br/>TIMEOUT or CANCELLED"]
+    history["6. Run history<br/>every run, every assertion,<br/>redacted log"]
 
-    subgraph n8n["n8n (optional)"]
-        trig["Schedule / webhook"]
-    end
-
-    subgraph stack["docker-webstack"]
-        web["nginx + php-fpm<br/>Laravel: UI and API"]
-        db[("MySQL<br/>config, runs, queue")]
-        worker["Worker container<br/>PHP CLI + Postman CLI"]
-    end
-
-    api["Target API"]
-
-    ui -->|"press Run"| web
-    trig -->|"POST /api/v1/runs"| web
-    web -->|"queue a run"| db
-    db -->|"job picked up"| worker
-    worker -->|"postman collection run"| api
-    api -->|"responses"| worker
-    worker -->|"parsed, redacted results"| db
-    db --> web
-    web -->|"status and failures"| ui
-    web -->|"GET /api/v1/runs/{id}"| trig
+    project --> envs --> coll --> run
+    run --> manual --> result
+    run --> auto --> result
+    result --> history
 ```
 
-A run never executes inside the web request. Pressing Run only queues it; the
-worker container picks it up. That container is the only place Postman CLI
-exists, because PHP running inside the web container cannot launch a program
-installed on the host.
+### What happens during a run
 
-### A single run, step by step
+A run never executes inside the request that starts it. Starting a run only
+queues it. The runner picks it up, runs the collection with Postman CLI, and
+stores the parsed result. The UI and n8n read that result back.
 
-```text
-1.  Run is created              status QUEUED
-2.  Worker picks up the job     status RUNNING
-3.  Selected environment is written to a temporary file (deleted afterwards)
-4.  Postman CLI executes the collection against the target API
-5.  JSON report is parsed, secrets are redacted
-6.  Results are stored          status PASS / FAIL / ERROR / TIMEOUT / CANCELLED
-7.  Temporary files are removed
+```mermaid
+sequenceDiagram
+    autonumber
+    actor You as You or n8n
+    participant App as API Automation
+    participant Queue as Run queue
+    participant Runner
+    participant CLI as Postman CLI
+    participant API as Your API
+
+    You->>App: Start run (project, environment, collection)
+    App->>Queue: Save run as QUEUED
+    App-->>You: Run accepted
+    Queue->>Runner: Next run
+    Runner->>Runner: Mark RUNNING, write environment to a temporary file
+    Runner->>CLI: Run the collection
+    CLI->>API: Requests
+    API-->>CLI: Responses
+    CLI-->>Runner: JSON report and exit code
+    Runner->>Runner: Parse report, redact secrets, delete temporary files
+    Runner->>App: Store results (PASS, FAIL, ERROR, TIMEOUT or CANCELLED)
+    You->>App: Check status (the page updates every 2 s, n8n polls GET /api/v1/runs/{id})
+    App-->>You: Status, summary and failed assertions
 ```
+
+Variable values are stored encrypted. They are decrypted only to write the
+temporary environment file for Postman CLI, which is deleted when the run
+ends. Everything that is stored or shown (results, logs, captured requests)
+is redacted first.
 
 ### Result statuses
 
