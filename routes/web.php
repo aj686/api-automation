@@ -8,6 +8,7 @@ use App\Livewire\Projects;
 use App\Livewire\ProjectShow;
 use App\Livewire\Runs;
 use App\Livewire\RunShow;
+use App\Livewire\Settings;
 use Illuminate\Support\Facades\Route;
 
 Route::livewire('/', Dashboard::class)->name('dashboard');
@@ -23,5 +24,4 @@ Route::livewire('/runs', Runs::class)->name('runs');
 // By ULID, not slug: runs outlive their project (plan section 4).
 Route::livewire('/runs/{run}', RunShow::class)->name('runs.show');
 
-// Replaced by its real page in the phase named.
-Route::view('/settings', 'placeholder', ['title' => 'Settings', 'phase' => 12])->name('settings');
+Route::livewire('/settings', Settings::class)->name('settings');

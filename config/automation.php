@@ -14,6 +14,18 @@ return [
 
     'postman_cli_path' => env('POSTMAN_CLI_PATH', 'postman'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Automation API
+    |--------------------------------------------------------------------------
+    |
+    | Bearer token for /api/v1 (n8n). Empty means the API is disabled. Set it
+    | with `php artisan automation:token`; never commit it (plan section 6).
+    |
+    */
+
+    'api_token' => env('AUTOMATION_API_TOKEN'),
+
     // Wall-clock limit for a whole run, enforced by the app, not the CLI.
     'run_timeout_seconds' => (int) env('AUTOMATION_RUN_TIMEOUT_SECONDS', 300),
 

@@ -7,15 +7,24 @@ use App\Models\EnvironmentVariable;
 /**
  * Replaces secrets with ******** before anything is stored or shown.
  *
- * This is the phase 9 minimum, required because Postman CLI writes resolved
- * variable values into its log and report (a {{api_key}} in a URL appears in
- * clear — decisions.md D-022): the exact values of the run's secret variables,
- * raw and URL-encoded. Phase 12 adds header and body patterns. Best-effort for
- * secrets the application was never told about.
+ * Two passes (plan section 6, decisions.md D-025, D-029):
+ *  1. the exact values of the run's secret variables, raw and URL-encoded —
+ *     required because Postman CLI writes resolved values into its log and
+ *     report (D-022);
+ *  2. patterns for secrets the application was never told about:
+ *     Authorization / Proxy-Authorization headers, bare Bearer tokens,
+ *     Cookie / Set-Cookie headers, and password=, api_key=, apikey=,
+ *     client_secret=, access_token=, token= (and similar) as query/form
+ *     pairs or JSON members.
+ *
+ * Pass 2 is best-effort: a secret in a shape it does not know is not caught.
  */
 class Redactor
 {
     public const MASK = EnvironmentVariable::MASK;
+
+    /** Credential names for key=value and JSON patterns; narrower than SECRET_KEY_PATTERN so "author=" is left alone. */
+    private const KEY_NAMES = 'password|passwd|pwd|client[_-]?secret|secret|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?token|session[_-]?id|token';
 
     /** @var list<string> longest first, so a value containing another is masked whole */
     private array $values;
@@ -42,11 +51,36 @@ class Redactor
 
     public function redact(?string $text): ?string
     {
-        if ($text === null || $text === '' || $this->values === []) {
+        if ($text === null || $text === '') {
             return $text;
         }
 
-        return str_replace($this->values, self::MASK, $text);
+        if ($this->values !== []) {
+            $text = str_replace($this->values, self::MASK, $text);
+        }
+
+        return $this->redactPatterns($text);
+    }
+
+    private function redactPatterns(string $text): string
+    {
+        $mask = self::MASK;
+        $keys = self::KEY_NAMES;
+
+        $patterns = [
+            // Authorization: Bearer abc / "authorization": "Basic abc" — keep the scheme, mask the credential.
+            '/(\b(?:proxy-)?authorization\b["\']?\s*[:=]\s*["\']?)((?:bearer|basic|digest|token)\s+)?[^\s"\',;&]+/i' => '$1$2'.$mask,
+            // A bearer token on its own (8+ characters, so "Bearer token missing" stays readable).
+            '/\b(bearer\s+)(?!\*{8})[A-Za-z0-9\-._~+\/]{8,}=*/i' => '$1'.$mask,
+            // Cookie: a=b; c=d — the whole header value.
+            '/(\b(?:set-)?cookie\b["\']?\s*:\s*["\']?)[^\r\n"\']+/i' => '$1'.$mask,
+            // "password": "x", "access_token":"x"
+            '/("(?:'.$keys.')"\s*:\s*)"(?:[^"\\\\]|\\\\.)*"/i' => '$1"'.$mask.'"',
+            // password=x, ?api_key=x&, token=x
+            '/(?<![A-Za-z0-9])((?:'.$keys.')=)(?!\*{8})[^&\s"\'#<>]+/i' => '$1'.$mask,
+        ];
+
+        return preg_replace(array_keys($patterns), array_values($patterns), $text) ?? $text;
     }
 
     /**
