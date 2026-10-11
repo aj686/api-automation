@@ -147,15 +147,18 @@ cannot be created for production environments.
 
 ## Status
 
-Early. Phase 0 (scaffold and configuration) is complete: Laravel 13 with
-Livewire 4, MySQL, a vhost, and a worker image containing a pinned Postman CLI.
+Usable for inbound testing. Built and tested: projects, environments with
+encrypted secret variables, Postman collection and environment import, runs
+executed by Postman CLI in the worker container (cancel, timeout, recovery),
+run history with per-assertion results and a redacted log, and the n8n API
+(`/api/v1`, bearer token).
 
-The application's own features — projects, environments, collections, the
-runner, result parsing, run history and the n8n API — are not built yet.
+Not built yet: outbound capture (checking calls your API makes to others) and
+the final documentation pass.
 
-No Postman CLI collection run has been executed yet; only its version has been
-confirmed. Report parsing is written against real captured output rather than
-assumptions, so it waits for that step.
+Postman CLI is pinned to 1.71.0; its behaviour was captured from real runs
+(`scripts/verify-postman-cli.sh`, fixtures in `tests/fixtures/postman`). The
+n8n example workflow was executed in n8n 2.42.6.
 
 ## Documentation
 
