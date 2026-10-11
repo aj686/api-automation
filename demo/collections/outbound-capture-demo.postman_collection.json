@@ -1,0 +1,116 @@
+{
+  "info": {
+    "name": "Outbound capture demo",
+    "description": "Shows outbound testing: a call arrives at a capture URL, then the collection asserts on what arrived. Step 1 stands in for YOUR API sending a webhook; in real use, replace it with the request that makes your API call out. Needs demo/environments/webstack-docker-outbound.postman_environment.json filled in (see demo/README.md).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Your API sends a webhook (stand-in)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Host",
+            "value": "{{host}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{webhook_secret}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"order_id\": \"demo-{{run_id}}\",\n  \"status\": \"paid\",\n  \"amount\": 25.5\n}"
+        },
+        "url": "{{base_url}}{{capture_path}}/orders/paid"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"capture URL accepted the call\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.json().received).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. The call arrived as expected",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Host",
+            "value": "{{host}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/captures/{{project}}/{{capture_bucket}}?since={{run_started_at}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Outgoing calls are often sent later from a queue: wait before each retry (loophole 43).",
+              "if (Number(pm.environment.get(\"capture_attempt\") || 0) > 0) {",
+              "    setTimeout(function () {}, 2000);",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const expectedOrder = \"demo-\" + pm.environment.get(\"run_id\");",
+              "const captures = pm.response.code === 200 ? pm.response.json().captures : [];",
+              "const call = captures.find(c => c.path === \"/orders/paid\" && c.json && c.json.order_id === expectedOrder);",
+              "const attempt = Number(pm.environment.get(\"capture_attempt\") || 0);",
+              "",
+              "// Not there yet: ask again, at most 5 times (~10 s).",
+              "if (!call && pm.response.code === 200 && attempt < 5) {",
+              "    pm.environment.set(\"capture_attempt\", attempt + 1);",
+              "    pm.execution.setNextRequest(pm.info.requestName);",
+              "    return;",
+              "}",
+              "",
+              "pm.test(\"captures API answered\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"the webhook arrived during this run\", function () {",
+              "    pm.expect(call, \"no POST /orders/paid for \" + expectedOrder + \" since \" + pm.environment.get(\"run_started_at\")).to.be.an(\"object\");",
+              "});",
+              "",
+              "pm.test(\"it was a POST with the paid status and amount\", function () {",
+              "    pm.expect(call.method).to.eql(\"POST\");",
+              "    pm.expect(call.json.status).to.eql(\"paid\");",
+              "    pm.expect(call.json.amount).to.eql(25.5);",
+              "});",
+              "",
+              "pm.test(\"it sent an Authorization header (value never stored)\", function () {",
+              "    pm.expect(call.headers.authorization).to.eql(\"[present]\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

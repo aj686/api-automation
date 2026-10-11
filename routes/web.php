@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Captures;
 use App\Livewire\Collections;
 use App\Livewire\Dashboard;
 use App\Livewire\Environments;
@@ -17,6 +18,7 @@ Route::livewire('/projects/{project:slug}', ProjectShow::class)->name('projects.
 Route::livewire('/projects/{project:slug}/environments', Environments::class)->name('projects.environments');
 Route::livewire('/projects/{project:slug}/collections', Collections::class)->name('projects.collections');
 Route::livewire('/projects/{project:slug}/runs', Runs::class)->name('projects.runs');
+Route::livewire('/projects/{project:slug}/captures', Captures::class)->name('projects.captures');
 // {environment:slug} is scoped to {project}: another project's slug is a 404.
 Route::livewire('/projects/{project:slug}/environments/{environment:slug}', EnvironmentShow::class)->name('projects.environments.show');
 

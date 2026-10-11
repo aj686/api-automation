@@ -54,6 +54,14 @@ class Project extends Model
     }
 
     /**
+     * @return HasMany<CaptureBucket, $this>
+     */
+    public function captureBuckets(): HasMany
+    {
+        return $this->hasMany(CaptureBucket::class);
+    }
+
+    /**
      * Run ids are ULIDs, which sort by creation time, so the highest id is the newest run.
      *
      * @return HasOne<Run, $this>

@@ -112,6 +112,8 @@ class ExecuteRunTest extends TestCase
         $this->assertStringContainsString('"key":"api_key","value":"********","type":"secret"', $run->log);
         $this->assertStringNotContainsString('YOUR_API_KEY', $run->log);
         $this->assertStringNotContainsString('old_token', $run->log, 'disabled variables are not written');
+        $this->assertMatchesRegularExpression('/"key":"run_started_at","value":"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ"/', $run->log, 'provided for capture filters');
+        $this->assertStringContainsString('"key":"run_id","value":"'.$run->id.'"', $run->log);
     }
 
     public function test_cancel_stops_the_whole_process_group(): void

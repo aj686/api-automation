@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CaptureController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\RunController;
 use Illuminate\Support\Facades\Route;
@@ -14,4 +15,7 @@ Route::prefix('v1')->middleware(['automation.token', 'throttle:automation-api'])
     Route::get('/catalog', CatalogController::class)->name('api.catalog');
     Route::post('/runs', [RunController::class, 'store'])->name('api.runs.store');
     Route::get('/runs/{run}', [RunController::class, 'show'])->name('api.runs.show');
+
+    // What a capture URL received; Postman polls this in outbound tests (plan section 13).
+    Route::get('/captures/{project:slug}/{bucket}', CaptureController::class)->name('api.captures');
 });

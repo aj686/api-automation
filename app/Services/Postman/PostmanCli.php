@@ -66,13 +66,16 @@ class PostmanCli
         $reportPath = $directory.'/report.json';
 
         try {
-            $this->writeEnvironment($environmentPath, $environment->name, $variables);
+            $this->writeEnvironment($environmentPath, $environment->name, $variables, $run);
 
             $command = $this->commands->build($collectionPath, $environmentPath, $directory, $reportPath, config('automation.request_timeout_ms'));
             $process = Process::path($directory)->forever()->start($command);
-            $run->update(['pid' => $process->id(), 'cli_version' => $this->cliVersion()]);
+            // Read once: Symfony returns null as soon as the process has exited,
+            // which a CLI failing instantly (broken collection) can do before this line.
+            $pid = $process->id();
+            $run->update(['pid' => $pid, 'cli_version' => $this->cliVersion()]);
 
-            $outcome = $this->supervise($process, $run, $cancelRequested);
+            $outcome = $this->supervise($process, $pid, $run, $cancelRequested);
             $log = $this->log($process->output().$process->errorOutput(), $redactor);
 
             if ($outcome !== null) {
@@ -117,9 +120,14 @@ class PostmanCli
      *
      * @return array{status: RunStatus, attributes: array<string, mixed>}|null
      */
-    private function supervise(InvokedProcess $process, Run $run, Closure $cancelRequested): ?array
+    private function supervise(InvokedProcess $process, ?int $pid, Run $run, Closure $cancelRequested): ?array
     {
-        $group = new ProcessGroup($process->id());
+        // Already finished before its pid could be read: nothing left to watch or stop.
+        if ($pid === null) {
+            return null;
+        }
+
+        $group = new ProcessGroup($pid);
         $deadline = microtime(true) + $run->timeout_seconds;
         $nextCancelCheck = 0.0;
         $nextBeat = 0.0;
@@ -220,16 +228,30 @@ class PostmanCli
      *
      * @param  Collection<int, EnvironmentVariable>  $variables
      */
-    private function writeEnvironment(string $path, string $name, $variables): void
+    private function writeEnvironment(string $path, string $name, $variables, Run $run): void
     {
+        $values = $variables->map(fn ($variable) => [
+            'key' => $variable->key,
+            'value' => (string) $variable->value,
+            'type' => $variable->is_secret ? 'secret' : 'default',
+            'enabled' => true,
+        ])->values()->all();
+
+        // Provided to every run, unless the environment defines them itself:
+        // outbound tests filter captures with ?since={{run_started_at}} (loophole 44).
+        $provided = [
+            'run_id' => $run->id,
+            'run_started_at' => ($run->started_at ?? now())->toIso8601ZuluString(),
+        ];
+        foreach ($provided as $key => $value) {
+            if (! $variables->contains('key', $key)) {
+                $values[] = ['key' => $key, 'value' => $value, 'type' => 'default', 'enabled' => true];
+            }
+        }
+
         $json = json_encode([
             'name' => $name,
-            'values' => $variables->map(fn ($variable) => [
-                'key' => $variable->key,
-                'value' => (string) $variable->value,
-                'type' => $variable->is_secret ? 'secret' : 'default',
-                'enabled' => true,
-            ])->values()->all(),
+            'values' => $values,
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
         $umask = umask(0077);

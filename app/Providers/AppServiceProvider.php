@@ -29,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
         // Behind Docker NAT every client shares one IP (plan loophole 29), so
         // this caps the API as a whole rather than per caller.
         RateLimiter::for('automation-api', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+        // Per capture URL, so one noisy caller cannot flood the table (loophole 38).
+        RateLimiter::for('capture', fn (Request $request) => Limit::perMinute(120)->by('capture:'.$request->route('bucket')));
 
         // Must not return false: the worker treats a false from a Looping
         // listener as "pause" (Illuminate\Queue\Worker::daemonShouldRun).

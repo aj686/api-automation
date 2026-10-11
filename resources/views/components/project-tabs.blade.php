@@ -7,6 +7,7 @@
         'environments' => ['Environments', route('projects.environments', $project)],
         'collections' => ['Collections', route('projects.collections', $project)],
         'runs' => ['Runs', route('projects.runs', $project)],
+        'captures' => ['Captures', route('projects.captures', $project)],
     ];
 @endphp
 
