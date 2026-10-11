@@ -1,0 +1,86 @@
+{
+  "info": {
+    "name": "API Automation self-check",
+    "description": "Example collection: tests this app's own endpoints, so it runs with no real credentials. Needs the environment demo/environments/webstack-docker.postman_environment.json (base_url + host).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health page",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Host", "value": "{{host}}" }],
+        "url": "{{base_url}}/up"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"responds within 2 seconds\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "API refuses a call without a token",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Host", "value": "{{host}}" }],
+        "url": "{{base_url}}/api/v1/catalog"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// An error status can be the CORRECT answer: this test passes because the API refuses.",
+              "// 401 = token configured but not sent; 503 = API disabled (no token configured).",
+              "pm.test(\"is refused (401 or 503)\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 503]);",
+              "});",
+              "",
+              "pm.test(\"explains why in JSON\", function () {",
+              "    pm.expect(pm.response.json()).to.have.property(\"message\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Unknown API path is a clean 404",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Host", "value": "{{host}}" }],
+        "url": "{{base_url}}/api/v1/does-not-exist"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test(\"no stack trace or file path leaks\", function () {",
+              "    pm.expect(pm.response.json()).to.eql({ message: \"Not Found\" });",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
