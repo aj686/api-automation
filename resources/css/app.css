@@ -4,18 +4,259 @@
 @source '../../vendor/livewire/livewire/src/Features/SupportPagination/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/*
+ * dark: follows the theme chosen in the header (data-theme on <html>, set by
+ * the inline script in layouts/app.blade.php), not only the OS setting.
+ * Only the vendor pagination views use dark:; our views use the tokens below.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Accent = Tailwind's violet scale. */
+    --color-accent-50: oklch(96.9% 0.016 293.756);
+    --color-accent-100: oklch(94.3% 0.029 294.588);
+    --color-accent-200: oklch(89.4% 0.057 293.283);
+    --color-accent-300: oklch(81.1% 0.111 293.571);
+    --color-accent-400: oklch(70.2% 0.183 293.541);
+    --color-accent-500: oklch(60.6% 0.25 292.717);
+    --color-accent-600: oklch(54.1% 0.281 293.009);
+    --color-accent-700: oklch(49.1% 0.27 292.581);
+    --color-accent-800: oklch(43.2% 0.232 292.759);
+    --color-accent-900: oklch(38% 0.189 293.745);
+    --color-accent-950: oklch(28.3% 0.141 291.089);
+
+    /* Roles that must not flip with the scales: white text sits on these in both themes. */
+    --color-primary: oklch(54.1% 0.281 293.009);
+    --color-primary-hover: oklch(49.1% 0.27 292.581);
+    --color-danger: oklch(57.7% 0.245 27.325);
+    --color-danger-hover: oklch(50.5% 0.213 27.518);
+    --color-surface: #fff;
+    --color-code: oklch(21% 0.006 285.885);
+    --color-code-fg: oklch(92% 0.004 286.32);
+
+    --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@layer base {
+    :root {
+        color-scheme: light;
+        accent-color: var(--color-primary);
+    }
+
+    /*
+     * Dark theme: the views are written against the light scales, so dark
+     * redefines them instead of adding dark: to every class. Neutrals (zinc)
+     * invert; status hues get dark tinted backgrounds (50-300) and light text
+     * (700-950). Shade 600 stays (rings, outlines) except accent-600, which
+     * lightens so focus rings and the active tab stay visible on dark.
+     */
+    :root[data-theme='dark'] {
+        color-scheme: dark;
+
+        --color-surface: oklch(19% 0.006 286);
+        --color-code: oklch(13% 0.005 286);
+
+        --color-zinc-50: oklch(15.5% 0.005 286);
+        --color-zinc-100: oklch(24% 0.007 286);
+        --color-zinc-200: oklch(29% 0.008 286);
+        --color-zinc-300: oklch(35% 0.01 286);
+        --color-zinc-400: oklch(50% 0.014 286);
+        --color-zinc-500: oklch(66% 0.014 286);
+        --color-zinc-600: oklch(74% 0.012 286);
+        --color-zinc-700: oklch(82% 0.01 286);
+        --color-zinc-800: oklch(88% 0.008 286);
+        --color-zinc-900: oklch(94% 0.005 286);
+        --color-zinc-950: oklch(97% 0.003 286);
+
+        --color-accent-50: oklch(25% 0.07 293);
+        --color-accent-100: oklch(29% 0.09 293);
+        --color-accent-200: oklch(36% 0.12 293);
+        --color-accent-300: oklch(42% 0.14 293);
+        --color-accent-600: oklch(70% 0.18 293);
+        --color-accent-700: oklch(80% 0.13 293);
+        --color-accent-800: oklch(86% 0.1 293);
+        --color-accent-900: oklch(91% 0.07 293);
+        --color-accent-950: oklch(94% 0.05 293);
+
+        --color-red-50: oklch(25% 0.07 25);
+        --color-red-100: oklch(29% 0.08 25);
+        --color-red-200: oklch(36% 0.1 25);
+        --color-red-300: oklch(42% 0.11 25);
+        --color-red-700: oklch(80% 0.15 25);
+        --color-red-800: oklch(84% 0.14 25);
+        --color-red-900: oklch(89% 0.12 25);
+        --color-red-950: oklch(93% 0.08 25);
+
+        --color-amber-50: oklch(25% 0.07 70);
+        --color-amber-100: oklch(29% 0.08 70);
+        --color-amber-200: oklch(36% 0.1 70);
+        --color-amber-300: oklch(42% 0.11 70);
+        --color-amber-700: oklch(80% 0.15 70);
+        --color-amber-800: oklch(84% 0.14 70);
+        --color-amber-900: oklch(89% 0.12 70);
+        --color-amber-950: oklch(93% 0.08 70);
+
+        --color-green-50: oklch(25% 0.07 150);
+        --color-green-100: oklch(29% 0.08 150);
+        --color-green-200: oklch(36% 0.1 150);
+        --color-green-300: oklch(42% 0.11 150);
+        --color-green-700: oklch(80% 0.15 150);
+        --color-green-800: oklch(84% 0.14 150);
+        --color-green-900: oklch(89% 0.12 150);
+        --color-green-950: oklch(93% 0.08 150);
+
+        --color-orange-50: oklch(25% 0.07 60);
+        --color-orange-100: oklch(29% 0.08 60);
+        --color-orange-200: oklch(36% 0.1 60);
+        --color-orange-300: oklch(42% 0.11 60);
+        --color-orange-700: oklch(80% 0.15 60);
+        --color-orange-800: oklch(84% 0.14 60);
+        --color-orange-900: oklch(89% 0.12 60);
+        --color-orange-950: oklch(93% 0.08 60);
+    }
+
+    /*
+     * Native <select> lists: Chrome on Windows draws the popup white unless the
+     * options carry colours, which leaves the flipped (light) text unreadable in dark.
+     */
+    option {
+        background-color: var(--color-surface);
+        color: var(--color-zinc-900);
+    }
+
+    /*
+     * Visible keyboard focus on every interactive element (master prompt section 76).
+     * :focus-visible, so mouse clicks do not draw the ring.
+     */
+    :focus-visible {
+        outline: 2px solid var(--color-accent-600);
+        outline-offset: 2px;
+    }
+
+    /*
+     * Motion: short colour fades on hover and a press response on buttons.
+     * Exact properties only, ease-out, under 200ms (emil-design-eng).
+     */
+    a,
+    button,
+    input,
+    select,
+    textarea {
+        transition:
+            color 150ms ease-out,
+            background-color 150ms ease-out,
+            border-color 150ms ease-out,
+            transform 160ms var(--ease-out-strong);
+    }
+
+    button:not(:disabled):active {
+        transform: scale(0.97);
+    }
+
+    /* Theme switch: one crossfade instead of every element fading on its own. */
+    .theme-switching * {
+        transition: none !important;
+    }
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 180ms;
+        animation-timing-function: ease-out;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        ::before,
+        ::after {
+            transition-duration: 0s !important;
+            animation-duration: 0s !important;
+        }
+
+        button:not(:disabled):active {
+            transform: none;
+        }
+    }
+}
+
+/* Flash message enters with a short fade and drop (inserted by Livewire, so @starting-style fires). */
+.flash-in {
+    transition:
+        opacity 200ms var(--ease-out-strong),
+        translate 200ms var(--ease-out-strong);
+
+    @starting-style {
+        opacity: 0;
+        translate: 0 -4px;
+    }
 }
 
 /*
- * Visible keyboard focus on every interactive element (master prompt section 76).
- * :focus-visible, so mouse clicks do not draw the ring.
+ * Sidebar (data-sidebar on <html>, set by the layout's inline script).
+ * md and up: full-height column; closed = 3.5rem icon rail, labels and the
+ * project list hidden, items keep their title tooltip.
+ * Below md: a drawer over the content with a backdrop; closed = off-screen
+ * and visibility: hidden (after the slide) so its links leave the Tab order.
  */
-@layer base {
-    :focus-visible {
-        outline: 2px solid var(--color-blue-600);
-        outline-offset: 2px;
+@media (min-width: 48rem) {
+    .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        transition: width 200ms var(--ease-out-strong);
+    }
+
+    [data-sidebar='closed'] .sidebar {
+        width: 3.5rem;
+    }
+
+    [data-sidebar='closed'] .sidebar :is(.sidebar-label, .sidebar-section) {
+        display: none;
+    }
+
+    [data-sidebar='closed'] .sidebar .sidebar-item {
+        justify-content: center;
+    }
+
+    [data-sidebar='closed'] .sidebar .theme-switch {
+        flex-direction: column;
+    }
+
+    .sidebar-backdrop {
+        display: none;
+    }
+}
+
+@media (width < 48rem) {
+    .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 40;
+        transition:
+            translate 200ms var(--ease-out-strong),
+            visibility 0s;
+    }
+
+    [data-sidebar='closed'] .sidebar {
+        translate: -100% 0;
+        visibility: hidden;
+        transition:
+            translate 200ms var(--ease-out-strong),
+            visibility 0s 200ms;
+    }
+
+    .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: rgb(0 0 0 / 0.4);
+        transition: opacity 200ms ease-out;
+    }
+
+    [data-sidebar='closed'] .sidebar-backdrop {
+        opacity: 0;
+        pointer-events: none;
     }
 }

@@ -18,18 +18,18 @@
             <p class="mb-2 font-semibold"><span aria-hidden="true">⚠</span> Copy this URL now — it is shown only once (only a hash of its token is stored).</p>
             <dl class="grid grid-cols-[11rem_1fr] gap-x-3 gap-y-2">
                 <dt class="text-amber-900">From your PC / browser</dt>
-                <dd><code class="break-all rounded bg-white px-1.5 py-0.5">{{ url($revealedPath) }}</code></dd>
+                <dd><code class="break-all rounded bg-surface px-1.5 py-0.5">{{ url($revealedPath) }}</code></dd>
                 <dt class="text-amber-900">From a Docker container</dt>
-                <dd><code class="break-all rounded bg-white px-1.5 py-0.5">http://nginx{{ $revealedPath }}</code> <span class="text-xs">with header <code>Host: {{ request()->getHost() }}</code>, or the URL above if the container has <code>extra_hosts: {{ request()->getHost() }}:host-gateway</code></span></dd>
+                <dd><code class="break-all rounded bg-surface px-1.5 py-0.5">http://nginx{{ $revealedPath }}</code> <span class="text-xs">with header <code>Host: {{ request()->getHost() }}</code>, or the URL above if the container has <code>extra_hosts: {{ request()->getHost() }}:host-gateway</code></span></dd>
                 <dt class="text-amber-900">Path only</dt>
-                <dd><code class="break-all rounded bg-white px-1.5 py-0.5">{{ $revealedPath }}</code> <span class="text-xs">— e.g. a secret <code>capture_path</code> variable for Postman</span></dd>
+                <dd><code class="break-all rounded bg-surface px-1.5 py-0.5">{{ $revealedPath }}</code> <span class="text-xs">— e.g. a secret <code>capture_path</code> variable for Postman</span></dd>
             </dl>
             <p class="mt-2 text-xs">Anything after the token is kept as the captured path, e.g. <code>{{ $revealedPath }}/orders/paid</code>.</p>
         </section>
     @endif
 
     @if ($buckets->isNotEmpty())
-        <table class="mb-6 w-full border-collapse rounded border border-zinc-200 bg-white text-sm">
+        <table class="mb-6 w-full border-collapse rounded border border-zinc-200 bg-surface text-sm">
             <thead class="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                     <th scope="col" class="px-3 py-2 font-medium">Bucket</th>
@@ -41,9 +41,9 @@
             </thead>
             <tbody class="divide-y divide-zinc-100">
                 @foreach ($buckets as $bucket)
-                    <tr wire:key="bucket-{{ $bucket->id }}" @class(['bg-blue-50/40' => $viewing?->is($bucket)])>
+                    <tr wire:key="bucket-{{ $bucket->id }}" @class(['bg-accent-50 shadow-[inset_3px_0_0_var(--color-accent-600)]' => $viewing?->is($bucket)]) @if ($viewing?->is($bucket)) aria-current="true" @endif>
                         <th scope="row" class="px-3 py-2 text-left font-medium">
-                            <button type="button" wire:click="view({{ $bucket->id }})" class="text-blue-700 hover:underline">{{ $bucket->name }}</button>
+                            <button type="button" wire:click="view({{ $bucket->id }})" class="text-accent-700 hover:underline">{{ $bucket->name }}</button>
                             <p class="font-mono text-xs font-normal text-zinc-500">{{ $bucket->slug }} · replies {{ $bucket->response_status }} · keeps {{ $bucket->expires_after_hours }} h</p>
                         </th>
                         <td class="px-3 py-2">{{ $bucket->environment->name }} <x-environment-badge :type="$bucket->environment->type" /></td>
@@ -56,8 +56,8 @@
                         </td>
                         <td class="px-3 py-2 tabular-nums">{{ $bucket->requests_count }}</td>
                         <td class="whitespace-nowrap px-3 py-2 text-right text-xs">
-                            <button type="button" wire:click="setEnabled({{ $bucket->id }}, {{ $bucket->enabled ? 'false' : 'true' }})" class="rounded px-2 py-1 text-zinc-700 hover:bg-zinc-50">{{ $bucket->enabled ? 'Disable' : 'Enable' }}</button>
-                            <button type="button" wire:click="reissueToken({{ $bucket->id }})" wire:confirm="Issue a new URL for {{ $bucket->name }}? The current URL stops working." class="rounded px-2 py-1 text-blue-700 hover:bg-zinc-50">New URL</button>
+                            <button type="button" wire:click="setEnabled({{ $bucket->id }}, {{ $bucket->enabled ? 'false' : 'true' }})" class="rounded px-2 py-1 text-zinc-700 hover:bg-zinc-100">{{ $bucket->enabled ? 'Disable' : 'Enable' }}</button>
+                            <button type="button" wire:click="reissueToken({{ $bucket->id }})" wire:confirm="Issue a new URL for {{ $bucket->name }}? The current URL stops working." class="rounded px-2 py-1 text-accent-700 hover:bg-zinc-100">New URL</button>
                             <button type="button" wire:click="deleteBucket({{ $bucket->id }})" wire:confirm="Delete {{ $bucket->name }} and everything it received?" class="rounded px-2 py-1 text-red-700 hover:bg-red-50">Delete</button>
                         </td>
                     </tr>
@@ -67,7 +67,7 @@
     @endif
 
     @if ($viewing)
-        <section aria-labelledby="received" class="mb-6 rounded border border-zinc-200 bg-white p-4 text-sm">
+        <section aria-labelledby="received" class="mb-6 rounded border border-zinc-200 bg-surface p-4 text-sm">
             <div class="mb-3 flex items-center gap-3">
                 <h2 id="received" class="font-semibold">Received by {{ $viewing->name }}</h2>
                 <span class="text-xs text-zinc-500">latest 20, newest first{{ $viewing->enabled ? ' · refreshing every 5 s' : '' }}</span>
@@ -90,7 +90,7 @@
                             @endforeach
                         </table>
                         @if ($captured->body !== null)
-                            <pre class="max-h-80 overflow-auto rounded bg-zinc-900 p-3 text-xs text-zinc-100">{{ $captured->body }}</pre>
+                            <pre class="max-h-80 overflow-auto rounded bg-code p-3 text-xs text-code-fg">{{ $captured->body }}</pre>
                             @if ($captured->body_truncated)
                                 <p class="text-xs text-amber-900">Body cut at {{ number_format(\App\Services\CaptureRecorder::MAX_BODY_BYTES / 1024) }} KB.</p>
                             @endif
@@ -103,7 +103,7 @@
         </section>
     @endif
 
-    <section aria-labelledby="new-bucket" class="rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="new-bucket" class="rounded border border-zinc-200 bg-surface p-4">
         <h2 id="new-bucket" class="mb-3 font-semibold">New capture URL</h2>
 
         @if ($environments->isEmpty())
@@ -132,7 +132,7 @@
                     </x-field>
                 </div>
                 <div>
-                    <button type="submit" class="rounded bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700">Create capture URL</button>
+                    <button type="submit" class="rounded bg-primary px-3 py-1.5 font-medium text-white hover:bg-primary-hover">Create capture URL</button>
                 </div>
             </form>
         @endif

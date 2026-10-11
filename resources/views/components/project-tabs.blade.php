@@ -20,7 +20,7 @@
                @if ($key === $active) aria-current="page" @endif
                @class([
                    '-mb-px border-b-2 px-3 py-2',
-                   'border-zinc-900 font-medium text-zinc-900' => $key === $active,
+                   'border-accent-600 font-medium text-accent-700' => $key === $active,
                    'border-transparent text-zinc-600 hover:text-zinc-900' => $key !== $active,
                ])>{{ $tab[0] }}</a>
         @endif

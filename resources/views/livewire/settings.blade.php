@@ -3,7 +3,7 @@
     <h1 class="text-lg font-semibold">Settings</h1>
     <p class="text-zinc-600">Read-only. These come from <code>.env</code> in the app root; change them there, then run <code>php artisan config:clear</code>.</p>
 
-    <section aria-labelledby="api" class="rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="api" class="rounded border border-zinc-200 bg-surface p-4">
         <h2 id="api" class="mb-2 font-semibold">Automation API (n8n)</h2>
 
         @if ($apiEnabled)
@@ -18,15 +18,15 @@
         @endif
 
         <p class="mb-1 mt-3 font-medium">{{ $apiEnabled ? 'Replace the token' : 'Turn it on' }} — run in WSL, then paste the printed token into n8n:</p>
-        <pre class="overflow-x-auto rounded bg-zinc-900 p-3 text-xs text-zinc-100">docker exec -w {{ $appRoot }} php8.3.fpm php artisan automation:token{{ $apiEnabled ? ' --force' : '' }}
+        <pre class="overflow-x-auto rounded bg-code p-3 text-xs text-code-fg">docker exec -w {{ $appRoot }} php8.3.fpm php artisan automation:token{{ $apiEnabled ? ' --force' : '' }}
 docker exec -w {{ $appRoot }} php8.3.fpm php artisan config:clear</pre>
 
         <p class="mb-1 mt-3 font-medium">Check it (replace YOUR_ACCESS_TOKEN):</p>
-        <pre class="overflow-x-auto rounded bg-zinc-900 p-3 text-xs text-zinc-100">curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" {{ url('/api/v1/ping') }}</pre>
+        <pre class="overflow-x-auto rounded bg-code p-3 text-xs text-code-fg">curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" {{ url('/api/v1/ping') }}</pre>
         <p class="mt-1 text-zinc-600"><code>{"ok":true}</code> means the token works. Calls are limited to 60 per minute.</p>
     </section>
 
-    <section aria-labelledby="runner" class="rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="runner" class="rounded border border-zinc-200 bg-surface p-4">
         <h2 id="runner" class="mb-2 font-semibold">Runner</h2>
         <dl class="grid grid-cols-[12rem_1fr] gap-x-4 gap-y-1">
             <dt class="text-zinc-500">Status</dt>
@@ -47,7 +47,7 @@ docker exec -w {{ $appRoot }} php8.3.fpm php artisan config:clear</pre>
         </dl>
     </section>
 
-    <section aria-labelledby="security" class="rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="security" class="rounded border border-zinc-200 bg-surface p-4">
         <h2 id="security" class="mb-2 font-semibold">Security</h2>
         <ul class="list-disc space-y-1 pl-5 text-zinc-700">
             <li>Secret variables are encrypted in the database and never shown after saving.</li>

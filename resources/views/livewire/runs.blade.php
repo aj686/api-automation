@@ -11,12 +11,12 @@
     <div class="mb-3 flex flex-wrap items-end gap-3 text-sm">
         <fieldset>
             <legend class="sr-only">Status</legend>
-            <div class="inline-flex rounded border border-zinc-300 bg-white">
+            <div class="inline-flex rounded border border-zinc-300 bg-surface">
                 @foreach (\App\Livewire\Runs::FILTERS as $key => [$label])
                     <label @class([
-                        'cursor-pointer border-zinc-300 px-3 py-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-600 [&:not(:first-child)]:border-l',
-                        'bg-zinc-900 font-medium text-white' => $status === $key,
-                        'text-zinc-700 hover:bg-zinc-50' => $status !== $key,
+                        'cursor-pointer border-zinc-300 px-3 py-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent-600 [&:not(:first-child)]:border-l',
+                        'bg-primary font-medium text-white' => $status === $key,
+                        'text-zinc-700 hover:bg-zinc-100' => $status !== $key,
                     ])>
                         <input type="radio" name="status" value="{{ $key }}" wire:model.live="status" class="sr-only">{{ $label }}
                     </label>
@@ -27,7 +27,7 @@
         @unless ($project)
             <div>
                 <label for="projectFilter" class="sr-only">Project</label>
-                <select id="projectFilter" wire:model.live="projectFilter" class="rounded border border-zinc-300 bg-white px-2 py-1.5">
+                <select id="projectFilter" wire:model.live="projectFilter" class="rounded border border-zinc-300 bg-surface px-2 py-1.5">
                     <option value="">All projects</option>
                     @foreach ($projects as $option)
                         <option value="{{ $option->slug }}">{{ $option->name }}</option>
@@ -38,7 +38,7 @@
     </div>
 
     @if ($runs->isEmpty())
-        <div class="rounded border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-600">
+        <div class="rounded border border-dashed border-zinc-300 bg-surface p-6 text-sm text-zinc-600">
             @if ($status === 'all' && $projectFilter === '')
                 <p class="font-medium text-zinc-900">No runs yet.</p>
                 <p class="mt-1">Start one from a project's overview page.</p>
@@ -47,7 +47,7 @@
             @endif
         </div>
     @else
-        <table class="w-full border-collapse overflow-hidden rounded border border-zinc-200 bg-white text-sm">
+        <table class="w-full border-collapse overflow-hidden rounded border border-zinc-200 bg-surface text-sm">
             <caption class="sr-only">Runs, newest first</caption>
             <thead class="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
@@ -69,7 +69,7 @@
                             <td class="px-3 py-2">{{ $run->project_name }}</td>
                         @endunless
                         <td class="px-3 py-2">
-                            <a href="{{ route('runs.show', $run) }}" class="text-blue-700 hover:underline">{{ $run->collection_name }} → {{ $run->environment_name }}</a>
+                            <a href="{{ route('runs.show', $run) }}" class="text-accent-700 hover:underline">{{ $run->collection_name }} → {{ $run->environment_name }}</a>
                             @if (\App\Enums\EnvironmentType::tryFrom($run->environment_type)?->isProduction())
                                 <x-environment-badge :type="$run->environment_type" class="ml-1" />
                             @endif

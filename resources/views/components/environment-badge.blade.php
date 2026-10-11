@@ -6,7 +6,7 @@
 @endphp
 
 @if ($type->isProduction())
-    <span {{ $attributes->class('inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white') }}>
+    <span {{ $attributes->class('inline-flex items-center gap-1 rounded bg-danger px-1.5 py-0.5 text-xs font-bold text-white') }}>
         <span aria-hidden="true">⚠</span>PRODUCTION
     </span>
 @else

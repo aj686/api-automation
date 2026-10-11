@@ -74,7 +74,7 @@ class ProjectsTest extends TestCase
             ->assertOk()
             ->assertSee('<title>'.e($project->name).' · API Automation</title>', false)
             ->assertSee('needs at least one')
-            ->assertSeeInOrder(['<aside aria-label="Projects"', 'aria-current="page"', e($project->name)], false);
+            ->assertSeeInOrder(['<aside aria-label="Sidebar"', 'aria-current="page"', e($project->name)], false);
 
         $this->get('/projects/missing')->assertNotFound();
     }

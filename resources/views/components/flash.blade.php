@@ -5,7 +5,7 @@
     session()->now(); actions that redirect use session()->flash().
 --}}
 @if (session('status'))
-    <p role="status" class="mb-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-900">
+    <p role="status" class="flash-in mb-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-900">
         {{ session('status') }}
     </p>
 @endif

@@ -75,6 +75,29 @@ class LayoutTest extends TestCase
     {
         Project::factory()->create(['name' => 'Finance API']);
 
-        $this->get('/runs')->assertOk()->assertSee('<aside aria-label="Projects"', false)->assertSee('Finance API');
+        $this->get('/runs')->assertOk()->assertSee('<aside aria-label="Sidebar"', false)->assertSee('Finance API');
+    }
+
+    public function test_theme_switch_offers_system_light_and_dark(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('<div role="group" aria-label="Theme"', false)
+            ->assertSeeInOrder(['data-theme-option="system"', 'data-theme-option="light"', 'data-theme-option="dark"'], false)
+            // The theme script must run in <head>, before the body paints.
+            ->assertSeeInOrder(["localStorage.getItem('theme')", '</head>', '<body'], false);
+    }
+
+    public function test_sidebar_has_a_toggle_wired_to_it(): void
+    {
+        Project::factory()->create(['name' => 'Finance API']);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('aria-controls="project-sidebar"', false)
+            ->assertSee('<aside aria-label="Sidebar" id="project-sidebar"', false)
+            ->assertSeeInOrder(['Dashboard', 'Projects', 'Runs', 'Finance API', 'Settings', 'aria-label="Theme"'])
+            // Open/closed is set in <head>, before the sidebar paints.
+            ->assertSeeInOrder(["localStorage.getItem('sidebar')", '</head>', '<body'], false);
     }
 }

@@ -20,7 +20,7 @@
     @if ($collections->isEmpty())
         <p class="mb-6 text-sm text-zinc-600">No collections yet. Export one from Postman (⋯ → Export → Collection v2.1) and import it below.</p>
     @else
-        <table class="mb-8 w-full border-collapse rounded border border-zinc-200 bg-white text-sm">
+        <table class="mb-8 w-full border-collapse rounded border border-zinc-200 bg-surface text-sm">
             <thead class="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                     <th scope="col" class="px-3 py-2 font-medium">Collection</th>
@@ -42,20 +42,20 @@
                             <p>{{ $collection->schema_version }} · <span class="font-mono" title="SHA-256 {{ $collection->sha256 }}">{{ substr($collection->sha256, 0, 12) }}</span> · {{ $collection->updated_at->diffForHumans() }}</p>
                         </td>
                         <td class="whitespace-nowrap px-3 py-2 text-right text-xs">
-                            <button type="button" wire:click="startReplace({{ $collection->id }})" class="rounded px-2 py-1 text-blue-700 hover:bg-zinc-50">Replace file</button>
+                            <button type="button" wire:click="startReplace({{ $collection->id }})" class="rounded px-2 py-1 text-accent-700 hover:bg-zinc-100">Replace file</button>
                             <button type="button" wire:click="delete({{ $collection->id }})" wire:confirm="Delete the collection {{ $collection->name }}? Its run history is kept." class="rounded px-2 py-1 text-red-700 hover:bg-red-50">Delete</button>
                         </td>
                     </tr>
                     @if ($replacingId === $collection->id)
                         <tr wire:key="replace-{{ $collection->id }}">
-                            <td colspan="4" class="bg-blue-50/40 px-3 py-3">
+                            <td colspan="4" class="bg-accent-50 px-3 py-3">
                                 <form wire:submit="replace" class="flex flex-wrap items-start gap-2 text-sm">
                                     <div>
                                         <label for="replacementFile" class="mb-1 block font-medium">New export of {{ $collection->name }}</label>
                                         <input id="replacementFile" type="file" wire:model="replacementFile" accept=".json,application/json">
                                         @error('replacementFile') <p role="alert" class="mt-1 text-xs font-medium text-red-700">{{ $message }}</p> @enderror
                                     </div>
-                                    <button type="submit" class="rounded bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700" wire:loading.attr="disabled" wire:target="replacementFile,replace">Replace</button>
+                                    <button type="submit" class="rounded bg-primary px-3 py-1.5 font-medium text-white hover:bg-primary-hover" wire:loading.attr="disabled" wire:target="replacementFile,replace">Replace</button>
                                     <button type="button" wire:click="cancelReplace" class="rounded px-3 py-1.5 text-zinc-700 hover:bg-zinc-100">Cancel</button>
                                 </form>
                             </td>
@@ -66,7 +66,7 @@
         </table>
     @endif
 
-    <section aria-labelledby="import-collection" class="rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="import-collection" class="rounded border border-zinc-200 bg-surface p-4">
         <h2 id="import-collection" class="mb-1 font-semibold">Import a collection</h2>
         <p class="mb-3 text-sm text-zinc-600">
             Postman v2.0 or v2.1 export, up to 5 MB. Use variables such as <code>@{{base_url}}</code> and <code>@{{api_key}}</code> for anything that differs per environment —
@@ -95,7 +95,7 @@
             </x-field>
 
             <div>
-                <button type="submit" class="rounded bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700" wire:loading.attr="disabled" wire:target="collectionFile,importCollection">Import collection</button>
+                <button type="submit" class="rounded bg-primary px-3 py-1.5 font-medium text-white hover:bg-primary-hover" wire:loading.attr="disabled" wire:target="collectionFile,importCollection">Import collection</button>
             </div>
         </form>
     </section>

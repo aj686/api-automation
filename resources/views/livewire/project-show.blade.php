@@ -6,14 +6,14 @@
 
     <x-project-tabs :project="$project" active="overview" />
 
-    <section aria-labelledby="run-panel" class="mb-8 rounded border border-zinc-200 bg-white p-4" @if ($hasActiveRun) wire:poll.2s @endif>
+    <section aria-labelledby="run-panel" class="mb-8 rounded border border-zinc-200 bg-surface p-4" @if ($hasActiveRun) wire:poll.2s @endif>
         <h2 id="run-panel" class="mb-3 font-semibold">Run tests</h2>
 
         @if ($environments->isEmpty() || $collections->isEmpty())
             <p class="text-sm text-zinc-600">
                 To run, this project needs at least one
-                <a href="{{ route('projects.environments', $project) }}" class="text-blue-700 hover:underline">environment</a> and one
-                <a href="{{ route('projects.collections', $project) }}" class="text-blue-700 hover:underline">collection</a>.
+                <a href="{{ route('projects.environments', $project) }}" class="text-accent-700 hover:underline">environment</a> and one
+                <a href="{{ route('projects.collections', $project) }}" class="text-accent-700 hover:underline">collection</a>.
             </p>
         @else
             <form wire:submit="startRun" class="grid gap-3 text-sm sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -33,7 +33,7 @@
                         @endforeach
                     </select>
                 </div>
-                <button type="submit" class="rounded bg-zinc-900 px-4 py-1.5 font-medium text-white hover:bg-zinc-700" wire:loading.attr="disabled" wire:target="startRun">
+                <button type="submit" class="rounded bg-primary px-4 py-1.5 font-medium text-white hover:bg-primary-hover" wire:loading.attr="disabled" wire:target="startRun">
                     <span aria-hidden="true">▶</span> Run
                 </button>
 
@@ -57,7 +57,7 @@
                 @foreach ($recentRuns as $run)
                     <li wire:key="run-{{ $run->id }}" class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
                         <x-status-badge :status="$run->status" :no-tests="$run->hasNoTests()" />
-                        <a href="{{ route('runs.show', $run) }}" class="text-blue-700 hover:underline">{{ $run->collection_name }} → {{ $run->environment_name }}</a>
+                        <a href="{{ route('runs.show', $run) }}" class="text-accent-700 hover:underline">{{ $run->collection_name }} → {{ $run->environment_name }}</a>
                         <span class="tabular-nums text-zinc-600">
                             @if ($run->total_assertions !== null) {{ $run->passed_assertions }}/{{ $run->total_assertions }} passed @endif
                             @if ($run->duration_ms !== null) · {{ number_format($run->duration_ms / 1000, 1) }} s @endif
@@ -78,12 +78,12 @@
             </ul>
             <p class="mt-1 text-xs text-zinc-500">
                 {{ $runCount }} {{ Str::plural('run', $runCount) }} in total.
-                <a href="{{ route('projects.runs', $project) }}" class="text-blue-700 hover:underline">All runs →</a>
+                <a href="{{ route('projects.runs', $project) }}" class="text-accent-700 hover:underline">All runs →</a>
             </p>
         @endif
     </section>
 
-    <section aria-labelledby="edit-project" class="mb-6 rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="edit-project" class="mb-6 rounded border border-zinc-200 bg-surface p-4">
         <h2 id="edit-project" class="mb-3 font-semibold">Details</h2>
 
         <form wire:submit="save" class="grid max-w-lg gap-3 text-sm">
@@ -103,12 +103,12 @@
             </x-field>
 
             <div>
-                <button type="submit" class="rounded bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700">Save</button>
+                <button type="submit" class="rounded bg-primary px-3 py-1.5 font-medium text-white hover:bg-primary-hover">Save</button>
             </div>
         </form>
     </section>
 
-    <section aria-labelledby="delete-project" class="rounded border border-red-200 bg-white p-4">
+    <section aria-labelledby="delete-project" class="rounded border border-red-200 bg-surface p-4">
         <h2 id="delete-project" class="mb-1 font-semibold text-red-800">Delete project</h2>
         <p class="mb-3 text-sm text-zinc-700">
             Deletes its environments, their stored credentials, and its collections. Run history is kept, still showing this project's name.
@@ -121,7 +121,7 @@
             </x-field>
 
             <div>
-                <button type="submit" class="rounded bg-red-700 px-3 py-1.5 font-medium text-white hover:bg-red-600">Delete project</button>
+                <button type="submit" class="rounded bg-danger px-3 py-1.5 font-medium text-white hover:bg-danger-hover">Delete project</button>
             </div>
         </form>
     </section>

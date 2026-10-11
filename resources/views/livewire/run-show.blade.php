@@ -7,7 +7,7 @@
 
 <div class="max-w-5xl" @if ($run->status->isActive()) wire:poll.2s @endif>
     <p class="mb-2 text-sm">
-        <a href="{{ $run->project ? route('projects.runs', $run->project) : route('runs') }}" class="text-blue-700 hover:underline">← {{ $run->project ? $run->project->name.' runs' : 'All runs' }}</a>
+        <a href="{{ $run->project ? route('projects.runs', $run->project) : route('runs') }}" class="text-accent-700 hover:underline">← {{ $run->project ? $run->project->name.' runs' : 'All runs' }}</a>
     </p>
 
     <div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -40,7 +40,7 @@
         </p>
     @endif
 
-    <section aria-labelledby="run-summary" class="mb-6 rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="run-summary" class="mb-6 rounded border border-zinc-200 bg-surface p-4">
         <h2 id="run-summary" class="sr-only">Summary</h2>
 
         {{-- NULL is "unknown" and shown as a dash, never as 0 (plan section 4). --}}
@@ -52,7 +52,7 @@
 
             <div><dt class="text-xs text-zinc-500">Project</dt><dd>
                 @if ($run->project)
-                    <a href="{{ route('projects.show', $run->project) }}" class="text-blue-700 hover:underline">{{ $run->project_name }}</a>
+                    <a href="{{ route('projects.show', $run->project) }}" class="text-accent-700 hover:underline">{{ $run->project_name }}</a>
                 @else
                     {{ $run->project_name }} <span class="text-xs text-zinc-500">(deleted)</span>
                 @endif
@@ -76,7 +76,7 @@
         <h2 id="run-results" class="mb-2 font-semibold">Results</h2>
 
         @if ($counts['all'] === 0)
-            <p class="rounded border border-dashed border-zinc-300 bg-white p-4 text-sm text-zinc-600">
+            <p class="rounded border border-dashed border-zinc-300 bg-surface p-4 text-sm text-zinc-600">
                 @if ($run->status->isActive())
                     Results appear when the run finishes.
                 @else
@@ -86,12 +86,12 @@
         @else
             <fieldset class="mb-3 text-sm">
                 <legend class="sr-only">Show results</legend>
-                <div class="inline-flex rounded border border-zinc-300 bg-white">
+                <div class="inline-flex rounded border border-zinc-300 bg-surface">
                     @foreach (\App\Livewire\RunShow::FILTERS as $key => $label)
                         <label @class([
-                            'cursor-pointer border-zinc-300 px-3 py-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-600 [&:not(:first-child)]:border-l',
-                            'bg-zinc-900 font-medium text-white' => $filter === $key,
-                            'text-zinc-700 hover:bg-zinc-50' => $filter !== $key,
+                            'cursor-pointer border-zinc-300 px-3 py-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent-600 [&:not(:first-child)]:border-l',
+                            'bg-primary font-medium text-white' => $filter === $key,
+                            'text-zinc-700 hover:bg-zinc-100' => $filter !== $key,
                         ])>
                             <input type="radio" name="resultFilter" value="{{ $key }}" wire:model.live="resultFilter" class="sr-only">{{ $label }} <span class="tabular-nums opacity-75">{{ $counts[$key] }}</span>
                         </label>
@@ -100,9 +100,9 @@
             </fieldset>
 
             @if ($results->isEmpty())
-                <p class="rounded border border-dashed border-zinc-300 bg-white p-4 text-sm text-zinc-600">No results match this filter.</p>
+                <p class="rounded border border-dashed border-zinc-300 bg-surface p-4 text-sm text-zinc-600">No results match this filter.</p>
             @else
-                <table class="w-full border-collapse overflow-hidden rounded border border-zinc-200 bg-white text-sm">
+                <table class="w-full border-collapse overflow-hidden rounded border border-zinc-200 bg-surface text-sm">
                     <caption class="sr-only">Results in execution order</caption>
                     <thead class="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
                         <tr>
@@ -151,9 +151,9 @@
 
     {{-- Secondary view for debugging (master prompt section 80). Redacted and size-capped before storage. --}}
     @if ($run->log !== null && $run->log !== '')
-        <details class="rounded border border-zinc-200 bg-white">
+        <details class="rounded border border-zinc-200 bg-surface">
             <summary class="cursor-pointer px-4 py-2 text-sm font-medium">Execution log <span class="font-normal text-zinc-500">(secrets redacted)</span></summary>
-            <pre class="max-h-[32rem] overflow-auto border-t border-zinc-200 bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-100">{{ $run->log }}</pre>
+            <pre class="max-h-[32rem] overflow-auto border-t border-zinc-200 bg-code p-4 font-mono text-xs leading-relaxed text-code-fg">{{ $run->log }}</pre>
         </details>
     @endif
 </div>

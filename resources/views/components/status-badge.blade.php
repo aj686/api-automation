@@ -12,7 +12,7 @@
         \App\Enums\RunStatus::Fail => 'bg-red-50 text-red-800 ring-red-600/30',
         \App\Enums\RunStatus::Error => 'bg-amber-50 text-amber-900 ring-amber-600/40',
         \App\Enums\RunStatus::Timeout => 'bg-orange-50 text-orange-900 ring-orange-600/30',
-        \App\Enums\RunStatus::Running => 'bg-blue-50 text-blue-800 ring-blue-600/30',
+        \App\Enums\RunStatus::Running => 'bg-accent-50 text-accent-800 ring-accent-600/30',
         default => 'bg-zinc-100 text-zinc-700 ring-zinc-500/30',
     };
 @endphp

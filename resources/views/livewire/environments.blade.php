@@ -7,7 +7,7 @@
     <x-project-tabs :project="$project" active="environments" />
 
     @if ($environments->isNotEmpty())
-        <table class="mb-8 w-full border-collapse rounded border border-zinc-200 bg-white text-sm">
+        <table class="mb-8 w-full border-collapse rounded border border-zinc-200 bg-surface text-sm">
             <thead class="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                     <th scope="col" class="px-3 py-2 font-medium">Environment</th>
@@ -20,7 +20,7 @@
                 @foreach ($environments as $environment)
                     <tr>
                         <th scope="row" class="px-3 py-2 text-left font-medium">
-                            <a href="{{ route('projects.environments.show', [$project, $environment]) }}" class="text-blue-700 hover:underline">{{ $environment->name }}</a>
+                            <a href="{{ route('projects.environments.show', [$project, $environment]) }}" class="text-accent-700 hover:underline">{{ $environment->name }}</a>
                             @if ($environment->base_url_hint)
                                 <p class="font-mono text-xs font-normal text-zinc-500">{{ $environment->base_url_hint }}</p>
                             @endif
@@ -36,7 +36,7 @@
         <p class="mb-6 text-sm text-zinc-600">No environments yet. Add one for each place this API runs — e.g. Local, Staging, Production.</p>
     @endif
 
-    <section aria-labelledby="new-environment" class="rounded border border-zinc-200 bg-white p-4">
+    <section aria-labelledby="new-environment" class="rounded border border-zinc-200 bg-surface p-4">
         <h2 id="new-environment" class="mb-3 font-semibold">New environment</h2>
 
         <form wire:submit="create" class="grid max-w-lg gap-3 text-sm">
@@ -70,7 +70,7 @@
             </x-field>
 
             <div>
-                <button type="submit" class="rounded bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700">Create environment</button>
+                <button type="submit" class="rounded bg-primary px-3 py-1.5 font-medium text-white hover:bg-primary-hover">Create environment</button>
             </div>
         </form>
     </section>
