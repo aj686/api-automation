@@ -59,7 +59,9 @@ class EnvironmentImporterTest extends TestCase
         return [
             'not json' => ['{', 'not valid JSON'],
             'no values' => ['{"name":"x"}', 'no "values" list'],
-            'collection' => ['{"info":{"schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},"item":[],"values":[]}', 'collection'],
+            'collection' => ['{"info":{"schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},"item":[],"values":[]}', 'Postman collection, not an environment'],
+            // A real collection export has no "values": it must still be named as a collection.
+            'collection without values' => ['{"info":{"name":"x","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},"item":[]}', "Import it on the project's Collections tab"],
             'missing key' => ['{"values":[{"value":"x"}]}', '#1 has no key'],
             'bad key' => ['{"values":[{"key":"a b","value":"x"}]}', 'unsupported key'],
             'duplicate' => ['{"values":[{"key":"a"},{"key":"a"}]}', 'more than once'],

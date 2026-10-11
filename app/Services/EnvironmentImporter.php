@@ -72,12 +72,14 @@ class EnvironmentImporter
             throw new ImportException('The file is not valid JSON.');
         }
 
-        if (! is_array($data) || ! isset($data['values']) || ! is_array($data['values'])) {
-            throw new ImportException('This is not a Postman environment export: it has no "values" list. Export it from Postman with Environments → ⋯ → Export.');
+        // Checked first: a collection has no "values" either, and "not an
+        // environment export" alone does not tell the user what went wrong.
+        if (is_array($data) && (isset($data['info']['schema']) || isset($data['item']))) {
+            throw new ImportException('This is a Postman collection, not an environment. Import it on the project\'s Collections tab.');
         }
 
-        if (isset($data['info']['schema']) || isset($data['item'])) {
-            throw new ImportException('This looks like a Postman collection, not an environment.');
+        if (! is_array($data) || ! isset($data['values']) || ! is_array($data['values'])) {
+            throw new ImportException('This is not a Postman environment export: it has no "values" list. Export it from Postman with Environments → ⋯ → Export.');
         }
 
         $variables = [];

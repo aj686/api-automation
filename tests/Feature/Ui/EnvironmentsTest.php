@@ -261,6 +261,23 @@ class EnvironmentsTest extends TestCase
         $this->assertSame($before, $this->temporaryUploads(), 'upload deleted');
     }
 
+    public function test_the_demo_files_import_on_the_right_pages_and_are_named_on_the_wrong_one(): void
+    {
+        $environment = Environment::factory()->create();
+
+        $this->showPage($environment)
+            ->set('importFile', UploadedFile::fake()->createWithContent('env.json', file_get_contents(base_path('demo/environments/webstack-docker.postman_environment.json'))))
+            ->call('import')
+            ->assertHasNoErrors()
+            ->assertSee('Imported: 2 added, 0 updated.');
+
+        $this->showPage($environment)
+            ->set('importFile', UploadedFile::fake()->createWithContent('c.json', file_get_contents(base_path('demo/collections/api-automation-self-check.postman_collection.json'))))
+            ->call('import')
+            ->assertHasErrors('importFile')
+            ->assertSee('This is a Postman collection, not an environment.');
+    }
+
     public function test_a_rejected_import_also_deletes_the_upload(): void
     {
         $environment = Environment::factory()->create();
