@@ -137,33 +137,94 @@ cannot be created for production environments.
   and require explicit confirmation. Nothing runs on startup.
 - **Execution** uses array arguments, never a shell string, and the executable
   path comes only from configuration.
+- **Automation API** (`/api/v1`) is off until a token is generated; then it
+  needs `Authorization: Bearer <token>` and is rate limited. Errors never
+  include stack traces.
+- **Capture URLs** carry a random token stored only as a hash, are disabled by
+  default, record credential headers as `[present]` only, and cannot exist for
+  production environments.
 
-## Requirements
+Details, and what is *not* protected: `docs/security.md` (project folder).
 
-- PHP 8.3+ and Composer
-- MySQL 5.7+
-- Postman CLI (installed in the worker container, not on the host)
-- Node, for building front-end assets
+## Running it
+
+Built for the `docker-webstack` stack on WSL (nginx, `php8.3.fpm`, MySQL 8, a
+Docker network `docker_webstack`). Layout:
+
+```text
+~/docker-webstack/projects/api-automation/       project folder — NOT in this repository
+├── nginx.conf          vhost api-automation.local (auto-loaded by webstack nginx)
+├── docker/worker/      worker image: php:8.3-cli + Node 22 + postman-cli 1.71.0
+├── docs/               setup, security, development, troubleshooting, n8n, decisions
+└── api-automation/     this repository
+```
+
+The project-folder files are kept on the machine, not in Git. On a fresh setup:
+
+1. Clone this repository as `~/docker-webstack/projects/api-automation/api-automation`
+   and put the vhost and worker files in the project folder.
+2. Create the databases and user — `docs/setup-mysql.md`.
+3. In the app root: `cp .env.example .env` and fill in `DB_PASSWORD`. Then
+   (`APP=/var/www/projects/api-automation/api-automation`):
+   ```bash
+   docker exec -w $APP php8.3.fpm composer install
+   docker exec -w $APP php8.3.fpm php artisan key:generate   # fresh install ONLY — see security.md
+   docker exec -w $APP php8.3.fpm php artisan migrate
+   ```
+4. Add the `api-automation-worker` service to `~/docker-webstack/docker-compose.yml`
+   and start it: `docker compose up -d --build api-automation-worker`.
+5. Build the front-end assets in the worker (the only container with Node):
+   `docker exec api-automation-worker npm ci && docker exec api-automation-worker npm run build`.
+6. Windows hosts file: `127.0.0.1 api-automation.local`. Open http://api-automation.local.
+
+Optional: `php artisan automation:token` for n8n (`docs/n8n.md`).
+
+## Using it
+
+1. **Projects → New project.**
+2. **Environments** tab → create one (e.g. *Staging*) → add variables, or
+   *Import from Postman* an exported environment. Mark credentials **secret**.
+   From the runner container, sites in the same webstack are reached as
+   `http://nginx` plus a `Host` header — not `localhost`.
+3. **Collections** tab → import a Postman **v2.1** collection export.
+4. **Overview** → pick environment and collection → **▶ Run**.
+5. Open the run: status, every assertion, the redacted execution log. **Runs**
+   lists history with filters.
+6. Outbound: **Captures** tab → create and enable a capture URL, point the API's
+   outgoing webhook/gateway URL at it (test environments only), assert in Postman.
+
+`demo/` has a collection and environment that test this app itself (expected
+**PASS 6/6**) and an outbound demo (`demo/README.md`).
+
+## Testing
+
+```bash
+docker exec -w $APP php8.3.fpm php artisan test              # unit + feature (real-CLI test skipped)
+docker exec -w $APP api-automation-worker php artisan test   # everything, incl. a real Postman CLI run
+sh scripts/browser-e2e.sh                                    # whole UI in real Chromium (from WSL)
+```
+
+Tests refuse to run unless the database name ends in `_testing`. Report parsing
+is tested against real Postman CLI 1.71.0 output (`scripts/verify-postman-cli.sh`,
+`tests/fixtures/postman`). See `docs/development.md`.
 
 ## Status
 
-Usable for inbound testing. Built and tested: projects, environments with
-encrypted secret variables, Postman collection and environment import, runs
-executed by Postman CLI in the worker container (cancel, timeout, recovery),
-run history with per-assertion results and a redacted log, and the n8n API
-(`/api/v1`, bearer token).
+Version 1 is complete: projects, environments with encrypted secret variables,
+Postman collection and environment import, runs executed by Postman CLI in the
+worker (cancel, timeout, recovery), run history with per-assertion results and
+a redacted log, the n8n API with an example workflow verified in n8n 2.42.6,
+and outbound capture.
 
-Not built yet: outbound capture (checking calls your API makes to others) and
-the final documentation pass.
-
-Postman CLI is pinned to 1.71.0; its behaviour was captured from real runs
-(`scripts/verify-postman-cli.sh`, fixtures in `tests/fixtures/postman`). The
-n8n example workflow was executed in n8n 2.42.6.
+Known limits are listed in `docs/security.md` and `docs/architecture.md`;
+notably, the UI has no login, so do not store real credentials while port 80
+is reachable from other devices on your network.
 
 ## Documentation
 
-Setup, architecture, decisions and security notes live in `docs/` alongside the
-deployment configuration, in the project folder above this one.
+In the project folder's `docs/`: `setup-mysql.md`, `architecture.md`,
+`security.md`, `development.md`, `troubleshooting.md`, `n8n.md` (API contract
+and workflow), `decisions.md` (every decision and how it was verified).
 
 ## Licence
 
