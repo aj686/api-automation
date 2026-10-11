@@ -265,3 +265,17 @@
 [x-cloak] {
     display: none !important;
 }
+
+/*
+ * File pickers (collection import, replace file, environment import): the
+ * browser's own "Choose file" button ignores the theme, so it is styled as the
+ * outlined sibling of the primary button — same radius, padding and weight,
+ * accent colour (lightened in dark, see the dark tokens above).
+ */
+@layer components {
+    input[type='file'] {
+        @apply max-w-full text-sm text-zinc-600;
+        @apply file:mr-3 file:cursor-pointer file:rounded file:border file:border-accent-600 file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-accent-700 file:transition-colors;
+        @apply file:hover:bg-accent-100;
+    }
+}
