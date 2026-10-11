@@ -79,7 +79,7 @@ class PostmanCli
             $log = $this->log($process->output().$process->errorOutput(), $redactor);
 
             if ($outcome !== null) {
-                return ['status' => $outcome['status'], 'attributes' => [...$outcome['attributes'], 'log' => $log], 'results' => []];
+                return ['status' => $outcome['status'], 'attributes' => [...$outcome['attributes'], 'log' => $log], 'results' => [], 'requests' => []];
             }
 
             $this->reap($process);
@@ -91,8 +91,13 @@ class PostmanCli
 
                 return [...$error, 'attributes' => [...$error['attributes'], 'log' => $log]];
             }
-            $report = is_file($reportPath) ? file_get_contents($reportPath) : null;
-            $parsed = $this->parser->parse($report === false ? null : $report, $exitCode, $redactor);
+            [$report, $tooLarge] = $this->readReport($reportPath, $directory);
+            if ($tooLarge) {
+                $error = $this->error('report_too_large', 'The Postman CLI report is too large to read without the Node compaction step (scripts/compact-postman-report.mjs). Check that Node is available in the runner container (AUTOMATION_NODE_PATH).');
+
+                return [...$error, 'attributes' => [...$error['attributes'], 'exit_code' => $exitCode, 'log' => $log]];
+            }
+            $parsed = $this->parser->parse($report, $exitCode, $redactor);
 
             return [
                 'status' => $parsed->status,
@@ -107,6 +112,7 @@ class PostmanCli
                     'log' => $log,
                 ],
                 'results' => $parsed->results,
+                'requests' => $parsed->requests,
             ];
         } finally {
             // Holds every secret of the environment in clear text.
@@ -183,6 +189,43 @@ class PostmanCli
         return ['status' => $reason, 'attributes' => $reason === RunStatus::Timeout
             ? ['error_code' => 'timeout', 'error_message' => "The run exceeded its {$run->timeout_seconds}-second limit and was stopped."]
             : ['error_code' => null, 'error_message' => null]];
+    }
+
+    /** Without the Node step, PHP reads the raw report only below this size (D-037). */
+    private const MAX_RAW_REPORT_BYTES = 8_000_000;
+
+    /**
+     * The report as PHP should read it. Postman CLI stores bodies as byte
+     * arrays (a 1 MB body ≈ 20 MB of JSON, ≈ 70 MB to decode), so the Node
+     * script turns them into text, cut at the payload limit, first.
+     *
+     * @return array{?string, bool} report JSON (null if none), too large to read
+     */
+    private function readReport(string $reportPath, string $directory): array
+    {
+        if (! is_file($reportPath)) {
+            return [null, false];
+        }
+
+        $node = config('automation.node_path');
+        $nodeFound = str_contains($node, '/') ? is_executable($node) : (new ExecutableFinder)->find($node) !== null;
+
+        if ($nodeFound) {
+            $compact = $directory.'/report.compact.json';
+            $result = Process::timeout(120)->run([
+                $node, base_path('scripts/compact-postman-report.mjs'),
+                $reportPath, $compact, (string) config('automation.payload_max_bytes'),
+            ]);
+            if ($result->successful() && is_file($compact)) {
+                return [file_get_contents($compact) ?: null, false];
+            }
+        }
+
+        if (filesize($reportPath) > self::MAX_RAW_REPORT_BYTES) {
+            return [null, true];
+        }
+
+        return [file_get_contents($reportPath) ?: null, false];
     }
 
     /**
@@ -282,6 +325,6 @@ class PostmanCli
      */
     private function error(string $code, string $message): array
     {
-        return ['status' => RunStatus::Error, 'attributes' => ['error_code' => $code, 'error_message' => $message], 'results' => []];
+        return ['status' => RunStatus::Error, 'attributes' => ['error_code' => $code, 'error_message' => $message], 'results' => [], 'requests' => []];
     }
 }

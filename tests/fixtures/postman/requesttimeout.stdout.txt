@@ -13,7 +13,7 @@ Root Blackhole
   2. status is 200
 Generating run report [json]...
 Saving run report [json]...
-Report created successfully! Saved to: /tmp/pv/out/requesttimeout.report.json
+Report created successfully! Saved to: /tmp/pv2/requesttimeout.report.json
 
 -------------------------------------------------
 |                         | executed |   failed |

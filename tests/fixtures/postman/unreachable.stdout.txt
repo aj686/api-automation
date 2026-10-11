@@ -13,7 +13,7 @@ Root Nowhere
   2. status is 200
 Generating run report [json]...
 Saving run report [json]...
-Report created successfully! Saved to: /tmp/pv/out/unreachable.report.json
+Report created successfully! Saved to: /tmp/pv2/unreachable.report.json
 
 -------------------------------------------------
 |                         | executed |   failed |
@@ -28,7 +28,7 @@ Report created successfully! Saved to: /tmp/pv/out/unreachable.report.json
 --------------------------+----------+-----------
 |              assertions |        1 |        1 |
 -------------------------------------------------
-| total run duration: 106 ms                    |
+| total run duration: 114 ms                    |
 -------------------------------------------------
 | total data received: 0 B (approx)             |
 -------------------------------------------------

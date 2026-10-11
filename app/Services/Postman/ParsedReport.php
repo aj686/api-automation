@@ -11,7 +11,8 @@ use App\Enums\RunStatus;
 final class ParsedReport
 {
     /**
-     * @param  list<array{position: int, item_name: string, method: ?string, url: ?string, response_code: ?int, response_time_ms: ?int, assertion: ?string, passed: bool, error_message: ?string}>  $results
+     * @param  list<array<string, mixed>>  $results  one row per assertion; `request_index` points into $requests
+     * @param  list<array<string, mixed>>  $requests  one entry per executed request, with payloads (D-037)
      */
     public function __construct(
         public readonly RunStatus $status,
@@ -22,5 +23,6 @@ final class ParsedReport
         public readonly ?int $passedAssertions = null,
         public readonly ?int $failedAssertions = null,
         public readonly array $results = [],
+        public readonly array $requests = [],
     ) {}
 }

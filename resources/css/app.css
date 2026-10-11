@@ -260,3 +260,8 @@
         pointer-events: none;
     }
 }
+
+/* Alpine: elements hidden until Alpine has started (request card tabs, D-037). */
+[x-cloak] {
+    display: none !important;
+}

@@ -1,11 +1,11 @@
 {
   "run": {
     "meta": {
-      "collectionId": "f22b32f7-e792-41dc-8289-1c7eb989fd4f",
+      "collectionId": "425ae205-6142-4d76-8052-5da48b0f3ae3",
       "collectionName": "Verify unreachable",
-      "started": 1791663169494,
-      "completed": 1791663169600,
-      "duration": 106
+      "started": 1791711774036,
+      "completed": 1791711774150,
+      "duration": 114
     },
     "summary": {
       "iterations": {
@@ -41,7 +41,7 @@
       {
         "iterationCount": 0,
         "requestExecuted": {
-          "id": "92bfa1c2-724e-4f5b-9106-db4f00f046b4",
+          "id": "d78689d0-0196-4f17-a31b-a6ca540f0e0b",
           "name": "Nowhere",
           "url": {
             "protocol": "http",
@@ -55,6 +55,43 @@
             "query": [],
             "variable": []
           },
+          "headers": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.56.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "91582ab1-4928-4f53-8ba7-a359f358dbd7",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "does-not-exist.invalid",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
           "method": "GET"
         },
         "tests": [
@@ -79,7 +116,7 @@
             "name": "Error",
             "message": "getaddrinfo ENOTFOUND does-not-exist.invalid",
             "stack": "Error: getaddrinfo ENOTFOUND does-not-exist.invalid\n    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)",
-            "timestamp": 1791663169563,
+            "timestamp": 1791711774108,
             "stacktrace": [
               {
                 "fileName": "node:dns",

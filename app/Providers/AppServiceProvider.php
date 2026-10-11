@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Postman\ReportParser;
 use App\Support\StaleRunRecovery;
 use App\Support\WorkerHeartbeatRecorder;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -19,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(WorkerHeartbeatRecorder::class);
         $this->app->singleton(StaleRunRecovery::class);
+        $this->app->when(ReportParser::class)->needs('$maxBodyBytes')->giveConfig('automation.payload_max_bytes');
     }
 
     /**

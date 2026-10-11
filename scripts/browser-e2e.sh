@@ -26,6 +26,16 @@ cleanup() {
         'App\Models\Run::where("project_name","Zz Browser E2E")->delete(); App\Models\Project::where("slug","zz-browser-e2e")->first()?->delete();' >/dev/null 2>&1
 }
 
+# A running `npm run dev` writes public/hot, and pages then load CSS/JS from
+# 127.0.0.1:<port> — which inside the test container is the container itself,
+# so the browser logs connection errors and pages render unstyled.
+if [ -f "$APP/public/hot" ] && [ "${E2E_ALLOW_HOT:-0}" != "1" ]; then
+    echo "A Vite dev server is active ($(cat "$APP/public/hot")): stop 'npm run dev' first, so the" >&2
+    echo "built assets are used — or run with E2E_ALLOW_HOT=1 to test without them (expect" >&2
+    echo "ERR_CONNECTION_REFUSED console errors for the dev-server files)." >&2
+    exit 2
+fi
+
 mkdir -p "$OUT" && rm -f "$OUT"/*.png
 cleanup
 
@@ -34,6 +44,7 @@ docker run --rm --init --ipc=host \
     --add-host api-automation.local:host-gateway \
     -v "$APP/tests/browser:/browser:ro" -v "$APP/demo:/demo:ro" -v "$OUT:/out" \
     -e PW_VERSION="$PW_VERSION" \
+    -e E2E_HOT_ORIGIN="$( [ "${E2E_ALLOW_HOT:-0}" = "1" ] && cat "$APP/public/hot" 2>/dev/null )" \
     --user root "$IMAGE" sh /browser/run-in-container.sh
 status=$?
 

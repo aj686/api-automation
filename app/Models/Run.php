@@ -83,6 +83,14 @@ class Run extends Model
     }
 
     /**
+     * @return HasMany<RunRequest, $this>
+     */
+    public function requests(): HasMany
+    {
+        return $this->hasMany(RunRequest::class)->orderBy('position');
+    }
+
+    /**
      * @return HasMany<RunResult, $this>
      */
     public function results(): HasMany

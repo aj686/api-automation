@@ -10,7 +10,14 @@ const SLUG = 'zz-browser-e2e';
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const problems = [];
-page.on('console', (m) => { if (m.type() === 'error') problems.push('console: ' + m.text()); });
+// With E2E_ALLOW_HOT=1 a running `npm run dev` is tolerated: only errors for its own
+// origin (unreachable from this container) are ignored; anything else still fails.
+const hotOrigin = process.env.E2E_HOT_ORIGIN || '';
+page.on('console', (m) => {
+  if (m.type() !== 'error') return;
+  if (hotOrigin && (m.location().url || '').startsWith(hotOrigin)) return;
+  problems.push('console: ' + m.text() + (m.location().url ? ' (' + m.location().url + ')' : ''));
+});
 page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));
 
 let n = 0;
@@ -90,18 +97,40 @@ try {
     await shot('run-passed');
   });
 
-  await step('open the run: 6 rows, filter, log', async () => {
+  await step('open the run: request cards with payloads, filters, log (D-037)', async () => {
     await page.getByRole('link', { name: /API Automation self-check → Docker/ }).first().click();
     await page.waitForURL('**/runs/*');
     await expectText('Results');
-    const rows = await page.locator('tr[wire\\:key^="result-"]').count();
-    if (rows !== 6) throw new Error(`expected 6 result rows, saw ${rows}`);
-    // The filter is a group of radio labels; target that control, not the "Failed" summary box.
+    const cards = () => page.locator('article[wire\\:key^="request-"]');
+    if ((await cards().count()) !== 3) throw new Error(`expected 3 request cards, saw ${await cards().count()}`);
+
+    // The response body is readable without clicking anything.
+    const refused = cards().filter({ hasText: 'API refuses a call without a token' });
+    await refused.getByText('Missing or invalid API token.').waitFor({ timeout: 5000 });
+    if (!(await refused.getByText('Missing or invalid API token.').isVisible())) throw new Error('response body not visible without a click');
+    await refused.getByText('401 Unauthorized').waitFor();
+
+    // Tabs switch in the browser.
+    await refused.getByRole('tab', { name: 'Response headers' }).click();
+    await refused.getByText('Content-Type', { exact: true }).waitFor({ timeout: 5000 });
+    if (await refused.getByText('Missing or invalid API token.').isVisible()) throw new Error('body still visible on the headers tab');
+    await refused.getByRole('tab', { name: 'Request' }).click();
+    await refused.getByText('Request headers').waitFor();
+
+    // Accordion: the header folds the card; "Expand all" opens every card again.
+    await refused.getByRole('button', { name: /API refuses a call without a token/ }).click();
+    await page.waitForFunction(() => [...document.querySelectorAll('article[wire\\:key^="request-"]')].some((a) => a.querySelector('[aria-expanded="false"]')), null, { timeout: 5000 });
+    if (await refused.getByText('Request headers').isVisible()) throw new Error('folded card still shows its payload');
+    await page.getByRole('button', { name: 'Collapse all' }).click();
+    await page.waitForFunction(() => document.querySelectorAll('article[wire\\:key^="request-"] [aria-expanded="true"]').length === 0, null, { timeout: 5000 });
+    await page.getByRole('button', { name: 'Expand all' }).click();
+    await page.waitForFunction(() => document.querySelectorAll('article[wire\\:key^="request-"] [aria-expanded="false"]').length === 0, null, { timeout: 5000 });
+    await refused.getByText('Request headers').waitFor();
+
     await page.locator('label:has(input[name="resultFilter"])', { hasText: 'Failed' }).click();
     await expectText('No results match this filter.');
     await page.locator('label:has(input[name="resultFilter"])', { hasText: 'Passed' }).click();
-    // Wait for Livewire to re-render rather than counting straight after the click.
-    await page.waitForFunction(() => document.querySelectorAll('tr[wire\\:key^="result-"]').length === 6, null, { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelectorAll('article[wire\\:key^="request-"]').length === 3, null, { timeout: 10000 });
     await page.getByText('Execution log').click();
     await expectText('status is 200');
     await shot('run-detail');

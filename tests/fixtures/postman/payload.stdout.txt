@@ -1,0 +1,45 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+Verify payload
+
+Root Create order
+
+  POST http://127.0.0.1:8099/echo?api_key=YOUR_API_KEY [201 Created, 334 B, 28 ms]
+  Pass  created
+
+Root Form login
+
+  POST http://127.0.0.1:8099/echo [201 Created, 332 B, 8 ms]
+
+Root Logo
+
+  GET http://127.0.0.1:8099/png [200 OK, 185 B, 4 ms]
+Generating run report [json]...
+Saving run report [json]...
+Report created successfully! Saved to: /tmp/pv2/payload.report.json
+
+---------------------------------------------------------------------
+|                         |           executed |             failed |
+--------------------------+--------------------+---------------------
+|              iterations |                  1 |                  0 |
+--------------------------+--------------------+---------------------
+|                requests |                  3 |                  0 |
+--------------------------+--------------------+---------------------
+|            test-scripts |                  1 |                  0 |
+--------------------------+--------------------+---------------------
+|      prerequest-scripts |                  0 |                  0 |
+--------------------------+--------------------+---------------------
+|              assertions |                  1 |                  0 |
+---------------------------------------------------------------------
+| total run duration: 108 ms                                        |
+---------------------------------------------------------------------
+| total data received: 211 B (approx)                               |
+---------------------------------------------------------------------
+| average response time: 13 ms [min: 4 ms, max: 28 ms, s.d.: 10 ms] |
+---------------------------------------------------------------------
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command

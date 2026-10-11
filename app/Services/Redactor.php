@@ -26,6 +26,13 @@ class Redactor
     /** Credential names for key=value and JSON patterns; narrower than SECRET_KEY_PATTERN so "author=" is left alone. */
     private const KEY_NAMES = 'password|passwd|pwd|client[_-]?secret|secret|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?token|session[_-]?id|token';
 
+    /** Headers whose value is a credential, whatever it looks like (D-032, D-037). */
+    public const CREDENTIAL_HEADERS = [
+        'authorization', 'proxy-authorization', 'cookie', 'set-cookie',
+        'x-api-key', 'api-key', 'apikey', 'x-auth-token', 'x-access-token',
+        'x-csrf-token', 'x-xsrf-token', 'x-amz-security-token',
+    ];
+
     /** @var list<string> longest first, so a value containing another is masked whole */
     private array $values;
 
@@ -81,6 +88,31 @@ class Redactor
         ];
 
         return preg_replace(array_keys($patterns), array_values($patterns), $text) ?? $text;
+    }
+
+    public static function isCredentialHeader(string $name): bool
+    {
+        $name = strtolower(trim($name));
+
+        return in_array($name, self::CREDENTIAL_HEADERS, true)
+            || preg_match(EnvironmentVariable::SECRET_KEY_PATTERN, $name) === 1;
+    }
+
+    /**
+     * A header value as it may be shown: credential headers keep only their
+     * scheme ("Bearer ********"), everything else goes through redact().
+     */
+    public function redactHeaderValue(string $name, ?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        if (self::isCredentialHeader($name)) {
+            return preg_match('/^(bearer|basic|digest|token)\s+/i', $value, $m) ? $m[1].' '.self::MASK : self::MASK;
+        }
+
+        return $this->redact($value);
     }
 
     /**

@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * One row parsed from the Postman CLI report. Already redacted when stored.
  */
 #[Fillable([
-    'position', 'item_name', 'method', 'url', 'response_code',
+    'run_request_id', 'position', 'item_name', 'method', 'url', 'response_code',
     'response_time_ms', 'assertion', 'passed', 'error_message',
 ])]
 #[WithoutTimestamps]
@@ -32,6 +32,14 @@ class RunResult extends Model
         return [
             'passed' => 'boolean',
         ];
+    }
+
+    /**
+     * @return BelongsTo<RunRequest, $this>
+     */
+    public function request(): BelongsTo
+    {
+        return $this->belongsTo(RunRequest::class, 'run_request_id');
     }
 
     /**

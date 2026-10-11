@@ -26,8 +26,9 @@ class RunCommandBuilder
             '--no-insecure-file-read',
             '--no-report-events',
             '-r', 'cli,json',
+            // Headers and bodies are kept (D-037): the parser redacts them and
+            // scripts/compact-postman-report.mjs trims bodies first.
             '--reporter-json-export', $reportPath,
-            '--reporter-json-omitAllHeadersAndBody',
             '--disable-unicode',
             '--timeout-request', (string) $requestTimeoutMs,
         ];

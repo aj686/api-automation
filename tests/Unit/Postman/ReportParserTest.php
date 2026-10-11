@@ -31,7 +31,7 @@ class ReportParserTest extends TestCase
         $this->assertSame([1, 2, 2, 0], [$report->totalRequests, $report->totalAssertions, $report->passedAssertions, $report->failedAssertions]);
         $this->assertCount(2, $report->results);
         $this->assertSame([
-            'position' => 0, 'item_name' => 'Health', 'method' => 'GET',
+            'position' => 0, 'request_index' => 0, 'item_name' => 'Health', 'method' => 'GET',
             'url' => 'http://nginx/up?api_key=********', 'response_code' => 200,
             'response_time_ms' => $report->results[0]['response_time_ms'],
             'assertion' => 'status is 200', 'passed' => true, 'error_message' => null,
@@ -133,5 +133,97 @@ class ReportParserTest extends TestCase
             $this->assertSame($code, $report->errorCode);
             $this->assertNull($report->totalAssertions, 'unknown, not zero');
         }
+    }
+
+    // ── Payloads (D-037): captured by scripts/verify-postman-cli.sh "payload" case ──
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function payloadRequests(int $maxBodyBytes = 65_536): array
+    {
+        return (new ReportParser($maxBodyBytes))->parse($this->fixture('payload'), 0, new Redactor(['YOUR_API_KEY']))->requests;
+    }
+
+    public function test_every_request_gets_its_payloads_and_results_point_to_it(): void
+    {
+        $report = (new ReportParser)->parse($this->fixture('payload'), 0, new Redactor(['YOUR_API_KEY']));
+
+        $this->assertSame(['Create order', 'Form login', 'Logo'], array_column($report->requests, 'item_name'));
+        $this->assertSame([0, 1, 2], array_column($report->requests, 'position'));
+        $this->assertSame([0, 1, 2], array_column($report->results, 'request_index'));
+    }
+
+    public function test_request_body_headers_and_response_are_kept_and_redacted(): void
+    {
+        $create = $this->payloadRequests()[0];
+
+        $this->assertSame('POST', $create['method']);
+        $this->assertSame('{"order": 7, "note": "key ********"}', $create['request_body']);
+        $headers = array_column($create['request_headers'], 'value', 'name');
+        $this->assertSame('Bearer ********', $headers['Authorization']);
+        $this->assertSame('********', $headers['X-Api-Key']);
+        $this->assertSame('application/json', $headers['Content-Type']);
+        $this->assertArrayNotHasKey('Postman-Token', $headers, 'noise header dropped');
+
+        $this->assertSame(201, $create['response_code']);
+        $this->assertSame('Created', $create['response_status']);
+        $this->assertSame('application/json', $create['response_content_type']);
+        $body = json_decode($create['response_body'], true);
+        $this->assertSame(['order' => 7, 'note' => 'key ********'], $body['received']);
+        $this->assertSame('********', $body['access_token'], 'unknown token caught by pattern');
+        $responseHeaders = array_column($create['response_headers'], 'value', 'name');
+        $this->assertSame('********', $responseHeaders['Set-Cookie']);
+        $this->assertSame('abc-123', $responseHeaders['X-Request-Id']);
+        $this->assertGreaterThan(0, $create['response_size']);
+    }
+
+    public function test_form_bodies_mask_credential_fields(): void
+    {
+        $form = $this->payloadRequests()[1];
+
+        $this->assertSame('username=me&password=********', $form['request_body']);
+        $this->assertStringContainsString('username=me&password=********', $form['response_body']);
+    }
+
+    public function test_binary_responses_are_not_stored(): void
+    {
+        $logo = $this->payloadRequests()[2];
+
+        $this->assertTrue($logo['response_body_binary']);
+        $this->assertNull($logo['response_body']);
+        $this->assertSame('image/png', $logo['response_content_type']);
+    }
+
+    public function test_bodies_are_cut_at_the_limit(): void
+    {
+        $create = $this->payloadRequests(maxBodyBytes: 20)[0];
+
+        $this->assertSame(20, strlen($create['request_body']));
+        $this->assertTrue($create['request_body_truncated']);
+        $this->assertTrue($create['response_body_truncated']);
+    }
+
+    public function test_no_raw_secret_anywhere_in_the_payloads(): void
+    {
+        $this->assertStringContainsString('YOUR_API_KEY', $this->fixture('payload'), 'the fixture carries it');
+        $this->assertStringNotContainsString('YOUR_API_KEY', json_encode($this->payloadRequests()));
+        $this->assertStringNotContainsString('YOUR_ACCESS_TOKEN_issued', json_encode($this->payloadRequests()));
+        $this->assertStringNotContainsString('YOUR_SESSION_COOKIE', json_encode($this->payloadRequests()));
+    }
+
+    public function test_a_report_compacted_by_the_node_script_reads_the_same(): void
+    {
+        $raw = json_decode($this->fixture('payload'), true);
+        foreach ($raw['run']['executions'] as &$execution) {
+            $bytes = pack('C*', ...$execution['response']['stream']['data']);
+            $binary = ! mb_check_encoding($bytes, 'UTF-8');
+            unset($execution['response']['stream']);
+            $execution['response'] += ['body' => $binary ? null : $bytes, 'bodyBytes' => strlen($bytes), 'bodyBinary' => $binary, 'bodyTruncated' => false];
+        }
+
+        $compacted = (new ReportParser)->parse(json_encode($raw), 0, new Redactor(['YOUR_API_KEY']))->requests;
+
+        $this->assertSame($this->payloadRequests(), $compacted);
     }
 }

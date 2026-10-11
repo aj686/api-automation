@@ -14,6 +14,9 @@ return [
 
     'postman_cli_path' => env('POSTMAN_CLI_PATH', 'postman'),
 
+    // Node, for scripts/compact-postman-report.mjs (it exists in the runner image for Postman CLI).
+    'node_path' => env('AUTOMATION_NODE_PATH', 'node'),
+
     /*
     |--------------------------------------------------------------------------
     | Automation API
@@ -37,6 +40,11 @@ return [
 
     // Stored log is redacted, then cut to this size (plan section 4).
     'log_max_bytes' => 200_000,
+
+    // Request and response bodies: each cut at this size; headers and bodies
+    // are deleted after this many days, the request line and tests are kept (D-037).
+    'payload_max_bytes' => 65_536,
+    'payload_retention_days' => 30,
 
     // Per-run scratch directories (environment file, report); deleted after each run.
     'runs_directory' => storage_path('app/private/runs'),

@@ -99,7 +99,25 @@
                 </div>
             </fieldset>
 
-            @if ($results->isEmpty())
+            @if ($hasRequests)
+                {{-- Postman-style request cards (D-037). --}}
+                @if ($requests->isEmpty())
+                    <p class="rounded border border-dashed border-zinc-300 bg-surface p-4 text-sm text-zinc-600">No results match this filter.</p>
+                @else
+                    @if ($requests->count() > 1)
+                        <div class="mb-2 flex gap-3 text-xs">
+                            <button type="button" x-data x-on:click="$dispatch('cards-fold', { folded: false })" class="text-accent-700 hover:underline">Expand all</button>
+                            <button type="button" x-data x-on:click="$dispatch('cards-fold', { folded: true })" class="text-accent-700 hover:underline">Collapse all</button>
+                        </div>
+                    @endif
+                    <div class="space-y-3">
+                        @foreach ($requests as $request)
+                            <x-request-card :request="$request" />
+                        @endforeach
+                    </div>
+                    <div class="mt-3">{{ $requests->links() }}</div>
+                @endif
+            @elseif ($results->isEmpty())
                 <p class="rounded border border-dashed border-zinc-300 bg-surface p-4 text-sm text-zinc-600">No results match this filter.</p>
             @else
                 <table class="w-full border-collapse overflow-hidden rounded border border-zinc-200 bg-surface text-sm">

@@ -45,7 +45,7 @@ class RealPostmanCliTest extends TestCase
             'info' => ['name' => 'Real Smoke', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
             'item' => [[
                 'name' => 'Health',
-                'request' => ['method' => 'GET', 'header' => [['key' => 'Host', 'value' => '{{host}}']], 'url' => '{{base_url}}/up?api_key={{api_key}}'],
+                'request' => ['method' => 'GET', 'header' => [['key' => 'Host', 'value' => '{{host}}'], ['key' => 'X-Api-Key', 'value' => '{{api_key}}']], 'url' => '{{base_url}}/up?api_key={{api_key}}'],
                 'event' => [['listen' => 'test', 'script' => ['exec' => ['pm.test("status is 200", function () { pm.response.to.have.status(200); });']]]],
             ]],
         ]), 'real.json');
@@ -60,5 +60,13 @@ class RealPostmanCliTest extends TestCase
         $this->assertSame('http://nginx/up?api_key=********', $run->results()->sole()->url);
         $this->assertStringContainsString('status is 200', $run->log);
         $this->assertStringNotContainsString('YOUR_API_KEY', $run->log);
+
+        // Payloads (D-037): the real response body is stored, the secret header masked.
+        $request = $run->requests()->sole();
+        $this->assertStringContainsString('<!DOCTYPE html>', $request->response_body);
+        $this->assertSame('text/html; charset=utf-8', $request->response_content_type);
+        $this->assertSame('********', collect($request->request_headers)->firstWhere('name', 'X-Api-Key')['value']);
+        $this->assertStringNotContainsString('YOUR_API_KEY', $request->toJson());
+        $this->assertSame($request->id, $run->results()->sole()->run_request_id);
     }
 }

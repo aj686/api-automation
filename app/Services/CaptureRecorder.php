@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\CaptureBucket;
 use App\Models\CapturedRequest;
-use App\Models\EnvironmentVariable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -17,12 +16,7 @@ class CaptureRecorder
     /** Bodies above this are cut (loophole 38). */
     public const MAX_BODY_BYTES = 262_144;
 
-    /** Headers whose value is a credential: only their presence is kept. */
-    private const CREDENTIAL_HEADERS = [
-        'authorization', 'proxy-authorization', 'cookie', 'set-cookie',
-        'x-api-key', 'api-key', 'apikey', 'x-auth-token', 'x-access-token',
-        'x-csrf-token', 'x-xsrf-token', 'x-amz-security-token',
-    ];
+    // Credential headers (Redactor::CREDENTIAL_HEADERS) are stored as present only.
 
     public const PRESENT = '[present]';
 
@@ -32,7 +26,7 @@ class CaptureRecorder
 
         $headers = [];
         foreach ($request->headers->all() as $name => $values) {
-            $headers[$name] = $this->isCredentialHeader($name)
+            $headers[$name] = Redactor::isCredentialHeader($name)
                 ? self::PRESENT
                 : $redactor->redact(implode(', ', $values));
         }
@@ -53,14 +47,6 @@ class CaptureRecorder
         $bucket->pruneExpired();
 
         return $captured;
-    }
-
-    private function isCredentialHeader(string $name): bool
-    {
-        $name = strtolower($name);
-
-        return in_array($name, self::CREDENTIAL_HEADERS, true)
-            || preg_match(EnvironmentVariable::SECRET_KEY_PATTERN, $name) === 1;
     }
 
     /**

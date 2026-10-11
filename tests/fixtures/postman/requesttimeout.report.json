@@ -1,11 +1,11 @@
 {
   "run": {
     "meta": {
-      "collectionId": "da0fe050-e23b-4909-8ce4-24c3d70ae256",
+      "collectionId": "abfe38d6-b4cc-4a33-a756-f70440e28a25",
       "collectionName": "Verify requesttimeout",
-      "started": 1791663179709,
-      "completed": 1791663181786,
-      "duration": 2077
+      "started": 1791711785921,
+      "completed": 1791711787986,
+      "duration": 2065
     },
     "summary": {
       "iterations": {
@@ -41,7 +41,7 @@
       {
         "iterationCount": 0,
         "requestExecuted": {
-          "id": "c6256b14-547a-409e-8962-23aa1f8320e9",
+          "id": "51754530-8d91-4937-8944-412e6e946c62",
           "name": "Blackhole",
           "url": {
             "protocol": "http",
@@ -57,6 +57,43 @@
             "query": [],
             "variable": []
           },
+          "headers": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.56.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3a0e63a8-f580-4fee-93d0-d1bd8a7a1079",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "10.255.255.1",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
           "method": "GET"
         },
         "tests": [
@@ -79,7 +116,7 @@
             "name": "Error",
             "message": "ETIMEDOUT",
             "stack": "Error: ETIMEDOUT\n    at Timeout.<anonymous> (/snapshot/postman-cli/dist/postman.bundled.js)\n    at listOnTimeout (node:internal/timers:605:17)\n    at process.processTimers (node:internal/timers:541:7)",
-            "timestamp": 1791663181739,
+            "timestamp": 1791711787949,
             "stacktrace": [
               {
                 "fileName": null,

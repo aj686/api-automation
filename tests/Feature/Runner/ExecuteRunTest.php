@@ -86,6 +86,44 @@ class ExecuteRunTest extends TestCase
         $this->assertSame([], File::glob($this->runsDirectory.'/*'), 'temp files deleted');
     }
 
+    public function test_request_cards_are_stored_with_payloads_and_linked_to_their_tests(): void
+    {
+        $run = $this->execute($this->queuedRun('payload', ['api_key' => ['YOUR_API_KEY', true]]));
+
+        $this->assertSame(RunStatus::Pass, $run->status);
+        $requests = $run->requests()->with('results')->get();
+        $this->assertSame(['Create order', 'Form login', 'Logo'], $requests->pluck('item_name')->all());
+
+        $create = $requests[0];
+        $this->assertSame('{"order": 7, "note": "key ********"}', $create->request_body);
+        $this->assertSame(201, $create->response_code);
+        $this->assertSame('created', $create->results->sole()->assertion);
+        $this->assertTrue($create->passed());
+        $this->assertTrue($requests[2]->response_body_binary);
+        $this->assertSame(3, $run->results()->whereNotNull('run_request_id')->count(), 'every row linked');
+
+        $stored = $run->requests()->get()->toJson().$run->results()->get()->toJson().$run->log;
+        foreach (['YOUR_API_KEY', 'YOUR_ACCESS_TOKEN_issued', 'YOUR_SESSION_COOKIE'] as $secret) {
+            $this->assertStringNotContainsString($secret, $stored, $secret);
+        }
+    }
+
+    public function test_payloads_are_purged_after_the_retention_period_but_the_summary_stays(): void
+    {
+        $old = $this->execute($this->queuedRun('payload'));
+        $old->update(['finished_at' => now()->subDays(config('automation.payload_retention_days') + 1)]);
+
+        $this->execute($this->queuedRun('pass')); // any finished run triggers the purge
+
+        $request = $old->requests()->first();
+        $this->assertNotNull($request->payload_purged_at);
+        $this->assertNull($request->response_body);
+        $this->assertNull($request->request_headers);
+        $this->assertSame(201, $request->response_code, 'request line and status kept');
+        $this->assertSame(3, $old->results()->count(), 'test results kept');
+        $this->assertNull($this->execute($this->queuedRun('payload'))->requests()->first()->payload_purged_at, 'recent runs untouched');
+    }
+
     public function test_failing_and_erroring_runs(): void
     {
         $this->assertSame(RunStatus::Fail, $this->execute($this->queuedRun('fail'))->status);
