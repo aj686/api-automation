@@ -57,7 +57,7 @@
                 @foreach ($recentRuns as $run)
                     <li wire:key="run-{{ $run->id }}" class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
                         <x-status-badge :status="$run->status" :no-tests="$run->hasNoTests()" />
-                        <span>{{ $run->collection_name }} → {{ $run->environment_name }}</span>
+                        <a href="{{ route('runs.show', $run) }}" class="text-blue-700 hover:underline">{{ $run->collection_name }} → {{ $run->environment_name }}</a>
                         <span class="tabular-nums text-zinc-600">
                             @if ($run->total_assertions !== null) {{ $run->passed_assertions }}/{{ $run->total_assertions }} passed @endif
                             @if ($run->duration_ms !== null) · {{ number_format($run->duration_ms / 1000, 1) }} s @endif
@@ -76,7 +76,10 @@
                     </li>
                 @endforeach
             </ul>
-            <p class="mt-1 text-xs text-zinc-500">{{ $runCount }} {{ Str::plural('run', $runCount) }} in total. Run details arrive in phase 11.</p>
+            <p class="mt-1 text-xs text-zinc-500">
+                {{ $runCount }} {{ Str::plural('run', $runCount) }} in total.
+                <a href="{{ route('projects.runs', $project) }}" class="text-blue-700 hover:underline">All runs →</a>
+            </p>
         @endif
     </section>
 

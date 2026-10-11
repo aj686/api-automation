@@ -25,7 +25,7 @@
                         <th scope="row" class="px-3 py-2 text-left font-medium">{{ $project->name }}</th>
                         @if ($run)
                             <td class="px-3 py-2">{{ $run->environment_name }}</td>
-                            <td class="px-3 py-2"><x-status-badge :status="$run->status" :no-tests="$run->hasNoTests()" /></td>
+                            <td class="px-3 py-2"><a href="{{ route('runs.show', $run) }}" class="hover:opacity-80"><x-status-badge :status="$run->status" :no-tests="$run->hasNoTests()" /></a></td>
                             {{-- NULL counts are "unknown", shown as a dash, never as 0. --}}
                             <td class="px-3 py-2 tabular-nums">
                                 {{ $run->total_assertions === null ? '—' : $run->passed_assertions.'/'.$run->total_assertions }}
