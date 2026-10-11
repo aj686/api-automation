@@ -73,7 +73,7 @@
             never real credentials. A copy is stored privately; the upload itself is deleted right away.
         </p>
 
-        <form wire:submit="upload" class="grid max-w-lg gap-3 text-sm">
+        <form wire:submit="importCollection" class="grid max-w-lg gap-3 text-sm">
             <x-field label="Collection file" for="collectionFile" :error="$errors->first('collectionFile')">
                 <input id="collectionFile" type="file" wire:model="collectionFile" accept=".json,application/json">
             </x-field>
@@ -95,7 +95,7 @@
             </x-field>
 
             <div>
-                <button type="submit" class="rounded bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700" wire:loading.attr="disabled" wire:target="collectionFile,upload">Import collection</button>
+                <button type="submit" class="rounded bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700" wire:loading.attr="disabled" wire:target="collectionFile,importCollection">Import collection</button>
             </div>
         </form>
     </section>

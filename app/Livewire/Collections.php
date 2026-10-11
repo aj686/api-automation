@@ -49,7 +49,11 @@ class Collections extends Component
         $this->project = $project;
     }
 
-    public function upload(CollectionImporter $importer): void
+    /**
+     * Not named upload(): in the browser `upload` is Livewire's own $wire.upload()
+     * alias, so wire:submit="upload" never reached the server (decisions.md D-026).
+     */
+    public function importCollection(CollectionImporter $importer): void
     {
         $this->warnings = [];
 

@@ -46,7 +46,7 @@ class CollectionsTest extends TestCase
         Livewire::test(Collections::class, ['project' => $project])
             ->set('collectionFile', $this->upload(CollectionImporterTest::collection()))
             ->set('kind', 'smoke')
-            ->call('upload')
+            ->call('importCollection')
             ->assertHasNoErrors()
             ->assertSee('Imported Demo Smoke (2 requests).')
             ->assertSet('collectionFile', null)
@@ -66,7 +66,7 @@ class CollectionsTest extends TestCase
         Livewire::test(Collections::class, ['project' => $project])
             ->set('collectionFile', $this->upload(CollectionImporterTest::collection()))
             ->set('name', 'Nightly Regression')->set('slug', 'nightly')
-            ->call('upload')->assertHasNoErrors();
+            ->call('importCollection')->assertHasNoErrors();
 
         $this->assertSame(['Nightly Regression', 'nightly'], array_values($project->collections()->sole()->only('name', 'slug')));
     }
@@ -78,7 +78,7 @@ class CollectionsTest extends TestCase
 
         Livewire::test(Collections::class, ['project' => $project])
             ->set('collectionFile', $this->upload(CollectionImporterTest::collection()))
-            ->call('upload')
+            ->call('importCollection')
             ->assertHasErrors('slug');
 
         $this->assertSame(1, $project->collections()->count());
@@ -92,7 +92,7 @@ class CollectionsTest extends TestCase
 
         Livewire::test(Collections::class, ['project' => $project])
             ->set('collectionFile', $this->upload('{"name":"env","values":[]}', 'env.json'))
-            ->call('upload')
+            ->call('importCollection')
             ->assertHasErrors('collectionFile')
             ->assertSee('environment, not a collection');
 
@@ -108,7 +108,7 @@ class CollectionsTest extends TestCase
             ->set('collectionFile', $this->upload(CollectionImporterTest::collection([
                 ['name' => 'a', 'request' => ['url' => 'http://localhost/a']],
             ])))
-            ->call('upload')
+            ->call('importCollection')
             ->assertHasNoErrors()
             ->assertSee('1 request call localhost');
     }
