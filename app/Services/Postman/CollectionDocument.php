@@ -27,6 +27,12 @@ class CollectionDocument
 
     public const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
+    /**
+     * Raw bodies above this are shown read-only: the form travels with every
+     * Livewire request, and Livewire refuses payloads over 1 MB.
+     */
+    public const RAW_EDIT_MAX_BYTES = 262_144;
+
     private function __construct(private \stdClass $data) {}
 
     /**
@@ -506,6 +512,10 @@ class CollectionDocument
         $mode = (string) $body->mode;
 
         if ($mode === 'raw') {
+            $raw = is_string($body->raw ?? null) ? $body->raw : '';
+            if (strlen($raw) > self::RAW_EDIT_MAX_BYTES) {
+                return ['mode' => 'other', 'other' => 'a raw body of '.number_format(strlen($raw) / 1024).' KB, too large to edit here'] + $form;
+            }
             $language = (string) ($body->options->raw->language ?? 'text');
 
             return ['mode' => 'raw', 'raw' => is_string($body->raw ?? null) ? $body->raw : '', 'language' => in_array($language, self::RAW_LANGUAGES, true) ? $language : 'text'] + $form;

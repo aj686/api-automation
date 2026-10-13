@@ -19,11 +19,11 @@
                             <input type="checkbox" wire:model.live="form.{{ $list }}.{{ $i }}.enabled" aria-label="Send row {{ $i + 1 }}">
                         </td>
                         <td class="py-0.5 pr-1">
-                            <input type="text" wire:model.live.blur="form.{{ $list }}.{{ $i }}.key" aria-label="Key, row {{ $i + 1 }}" autocomplete="off" spellcheck="false"
+                            <input type="text" wire:model.live.blur="form.{{ $list }}.{{ $i }}.key" aria-label="Key, row {{ $i + 1 }}" placeholder="Key" autocomplete="off" spellcheck="false"
                                    @class(['w-full rounded border border-zinc-300 bg-surface px-2 py-1 font-mono text-xs', 'text-zinc-400 line-through' => ! $row['enabled']])>
                         </td>
                         <td class="py-0.5 pr-1">
-                            <input type="text" wire:model.live.blur="form.{{ $list }}.{{ $i }}.value" aria-label="Value, row {{ $i + 1 }}" autocomplete="off" spellcheck="false"
+                            <input type="text" wire:model.live.blur="form.{{ $list }}.{{ $i }}.value" aria-label="Value, row {{ $i + 1 }}" placeholder="Value" autocomplete="off" spellcheck="false"
                                    @class(['w-full rounded border border-zinc-300 bg-surface px-2 py-1 font-mono text-xs', 'text-zinc-400' => ! $row['enabled']])>
                         </td>
                         <td class="py-0.5 text-right">

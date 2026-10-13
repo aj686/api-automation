@@ -73,7 +73,7 @@
                             <td class="px-3 py-2">{{ $run->project_name }}</td>
                         @endunless
                         <td class="px-3 py-2">
-                            <a href="{{ route('runs.show', $run) }}" class="text-accent-700 hover:underline">{{ $run->collection_name }} → {{ $run->environment_name }}</a>
+                            <a href="{{ route('runs.show', $run) }}" class="wrap-anywhere text-accent-700 hover:underline">{{ $run->collection_name }} → {{ $run->environment_name }}</a>
                             @if (\App\Enums\EnvironmentType::tryFrom($run->environment_type)?->isProduction())
                                 <x-environment-badge :type="$run->environment_type" class="ml-1" />
                             @endif
@@ -83,7 +83,7 @@
                                 <span class="ml-1 text-xs text-zinc-500">send</span>
                             @endif
                             @if ($run->trigger !== \App\Enums\RunTrigger::Send && ($sequence = $run->sequenceSummary()))
-                                <p class="line-clamp-1 text-xs text-zinc-500" title="{{ $sequence }}">{{ $sequence }}</p>
+                                <p class="line-clamp-1 wrap-anywhere text-xs text-zinc-500" title="{{ $sequence }}">{{ $sequence }}</p>
                             @endif
                         </td>
                         {{-- NULL counts are "unknown", shown as a dash, never as 0. --}}

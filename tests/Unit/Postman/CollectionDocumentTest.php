@@ -160,4 +160,20 @@ class CollectionDocumentTest extends TestCase
         $this->assertSame('console.log(1);', $summary['prerequest']);
         $this->assertSame([['key' => 'limit', 'value' => '10']], $summary['variables']);
     }
+
+    public function test_a_very_large_raw_body_is_read_only_and_kept(): void
+    {
+        $big = str_repeat('x', CollectionDocument::RAW_EDIT_MAX_BYTES + 1);
+        $doc = CollectionDocument::fromJson(json_encode([
+            'info' => ['name' => 'Big', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
+            'item' => [['id' => 'big', 'name' => 'Big', 'request' => ['method' => 'POST', 'url' => '{{u}}', 'body' => ['mode' => 'raw', 'raw' => $big]]]],
+        ]));
+
+        $form = $doc->requestForm('big');
+        $this->assertSame('other', $form['body']['mode']);
+        $this->assertSame('', $form['body']['raw'], 'not sent to the browser');
+
+        $doc->applyRequestForm('big', $form);
+        $this->assertSame($big, json_decode($doc->toJson())->item[0]->request->body->raw);
+    }
 }

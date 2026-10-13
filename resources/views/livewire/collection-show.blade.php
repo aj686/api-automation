@@ -21,14 +21,14 @@
 
 <div class="max-w-7xl"
      x-data
-     x-on:keydown.ctrl.s.window.prevent="document.activeElement?.blur(); $wire.saveRequest()"
-     x-on:keydown.meta.s.window.prevent="document.activeElement?.blur(); $wire.saveRequest()"
+     x-on:keydown.ctrl.s.window.prevent="if ($wire.pane === 'request') { document.activeElement?.blur(); $wire.saveRequest() }"
+     x-on:keydown.meta.s.window.prevent="if ($wire.pane === 'request') { document.activeElement?.blur(); $wire.saveRequest() }"
      x-on:beforeunload.window="if ($wire.unsaved) { $event.preventDefault(); $event.returnValue = ''; }">
     <x-flash />
 
     <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
-            <p class="text-xs text-zinc-500">
+            <p class="wrap-anywhere text-xs text-zinc-500">
                 <a href="{{ route('projects.show', $project) }}" class="hover:underline">{{ $project->name }}</a> /
                 <a href="{{ route('projects.collections', $project) }}" class="hover:underline">Collections</a>
             </p>
@@ -42,7 +42,7 @@
                 @if ($environments->isEmpty())
                     <a href="{{ route('projects.environments', $project) }}" class="text-accent-700 hover:underline">Create an environment →</a>
                 @else
-                    <select id="environmentId" wire:model.live="environmentId" class="rounded border border-zinc-300 bg-surface px-2 py-1.5">
+                    <select id="environmentId" wire:model.live="environmentId" class="max-w-[16rem] rounded border border-zinc-300 bg-surface px-2 py-1.5">
                         @foreach ($environments as $environment)
                             <option value="{{ $environment->id }}">{{ $environment->name }}{{ $environment->isProduction() ? ' — PRODUCTION' : '' }}</option>
                         @endforeach
@@ -82,7 +82,7 @@
 
     <div class="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
         {{-- Tree --}}
-        <aside aria-label="Requests" class="min-w-0 rounded border border-zinc-200 bg-surface p-2 text-sm"
+        <aside aria-label="Requests" class="min-w-0 rounded lg:sticky lg:top-4 lg:self-start border border-zinc-200 bg-surface p-2 text-sm"
                x-data="{ closed: {} }">
             <div class="mb-2 flex flex-wrap gap-1">
                 <button type="button" wire:click="showPane('overview')" @class(['rounded px-2 py-1', 'bg-accent-50 font-medium text-accent-700' => $pane === 'overview', 'hover:bg-zinc-100' => $pane !== 'overview']) @if ($pane === 'overview') aria-current="page" @endif>Overview</button>
@@ -97,7 +97,7 @@
             @endif
 
             @php $ancestors = []; @endphp
-            <ul class="space-y-px">
+            <ul class="max-h-[40vh] space-y-px overflow-y-auto lg:max-h-[calc(100dvh-6rem)]">
                 @foreach ($tree as $row)
                     @php
                         $ancestors = array_slice($ancestors, 0, $row['depth']);
@@ -107,7 +107,7 @@
                     @endphp
                     <li wire:key="tree-{{ $row['id'] }}" x-show="!({{ $hiddenIf }})"
                         class="group flex items-center gap-1 rounded {{ $selected ? 'bg-accent-50' : 'hover:bg-zinc-50' }}"
-                        style="padding-left: {{ $row['depth'] * 0.9 + 0.25 }}rem">
+                        style="padding-left: {{ min($row['depth'], 5) * 0.75 + 0.25 }}rem">
                         @if ($renamingId === $row['id'])
                             <form wire:submit="saveRename" class="flex min-w-0 flex-1 items-center gap-1 py-0.5">
                                 <label for="renameValue" class="sr-only">New name</label>
@@ -126,24 +126,24 @@
                             <button type="button" class="flex min-w-0 flex-1 items-center gap-2 py-1 pl-4 text-left"
                                     @if ($selected) aria-current="true" @endif
                                     x-on:click="if ($wire.unsaved && @js($row['id']) !== $wire.selectedId && ! confirm('Discard your unsaved changes to this request?')) return; $wire.selectItem(@js($row['id']))">
-                                <span class="w-12 shrink-0 font-mono text-[0.65rem] font-semibold {{ $methodColour($row['method']) }}">{{ $row['method'] }}</span>
+                                <span class="min-w-12 shrink-0 font-mono text-[0.65rem] font-semibold {{ $methodColour($row['method']) }}">{{ $row['method'] }}</span>
                                 <span class="truncate" title="{{ $row['name'] }}">{{ $row['name'] }}</span>
                             </button>
                         @endif
 
                         @if ($renamingId !== $row['id'])
                             <details class="relative shrink-0" x-data x-on:click.outside="$el.open = false">
-                                <summary class="cursor-pointer list-none rounded px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-100" aria-label="Actions for {{ $row['name'] }}">⋯</summary>
+                                <summary class="cursor-pointer list-none rounded [&::-webkit-details-marker]:hidden px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-100" aria-label="Actions for {{ $row['name'] }}">⋯</summary>
                                 <div class="absolute right-0 z-10 mt-1 grid w-40 rounded border border-zinc-200 bg-surface py-1 text-xs shadow-lg">
                                     @if ($row['folder'])
-                                        <button type="button" wire:click="addRequest('{{ $row['id'] }}')" class="px-3 py-1.5 text-left hover:bg-zinc-100">Add request</button>
-                                        <button type="button" wire:click="addFolder('{{ $row['id'] }}')" class="px-3 py-1.5 text-left hover:bg-zinc-100">Add folder</button>
+                                        <button type="button" wire:click="addRequest(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Add request</button>
+                                        <button type="button" wire:click="addFolder(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Add folder</button>
                                     @endif
-                                    <button type="button" wire:click="startRename('{{ $row['id'] }}')" class="px-3 py-1.5 text-left hover:bg-zinc-100">Rename</button>
-                                    <button type="button" wire:click="duplicateItem('{{ $row['id'] }}')" class="px-3 py-1.5 text-left hover:bg-zinc-100">Duplicate</button>
-                                    <button type="button" wire:click="moveItem('{{ $row['id'] }}', -1)" class="px-3 py-1.5 text-left hover:bg-zinc-100">Move up</button>
-                                    <button type="button" wire:click="moveItem('{{ $row['id'] }}', 1)" class="px-3 py-1.5 text-left hover:bg-zinc-100">Move down</button>
-                                    <button type="button" wire:click="deleteItem('{{ $row['id'] }}')"
+                                    <button type="button" wire:click="startRename(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Rename</button>
+                                    <button type="button" wire:click="duplicateItem(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Duplicate</button>
+                                    <button type="button" wire:click="moveItem(@js($row['id']), -1)" class="px-3 py-1.5 text-left hover:bg-zinc-100">Move up</button>
+                                    <button type="button" wire:click="moveItem(@js($row['id']), 1)" class="px-3 py-1.5 text-left hover:bg-zinc-100">Move down</button>
+                                    <button type="button" wire:click="deleteItem(@js($row['id']))"
                                             wire:confirm="Delete {{ $row['folder'] ? 'the folder '.$row['name'].' and everything in it' : $row['name'] }}? This changes the stored collection."
                                             class="px-3 py-1.5 text-left text-red-700 hover:bg-red-50">Delete</button>
                                 </div>
@@ -178,8 +178,8 @@
                         </select>
                         <label for="form-url" class="sr-only">URL</label>
                         <input id="form-url" type="text" wire:model.live.blur="form.url" placeholder="@{{base_url}}/path" autocomplete="off" spellcheck="false"
-                               class="min-w-0 flex-1 rounded border border-zinc-300 bg-surface px-2 py-1.5 font-mono text-sm">
-                        <button type="button" wire:click="saveRequest" class="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100" title="Ctrl+S">Save</button>
+                               class="order-first min-w-0 flex-1 basis-full sm:order-none sm:basis-0 rounded border border-zinc-300 bg-surface px-2 py-1.5 font-mono text-sm">
+                        <button type="button" wire:click="saveRequest" wire:loading.attr="disabled" wire:target="saveRequest" class="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-60" title="Ctrl+S">Save</button>
                         <button type="submit" class="rounded bg-primary px-4 py-1.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
                                 wire:loading.attr="disabled" wire:target="sendRequest" @disabled($environments->isEmpty())>Send</button>
                     </form>
@@ -198,7 +198,7 @@
                     @endphp
                     <div x-data="{ tab: 'params',
                                    move(step) { const k = @js(array_keys($tabs)); this.tab = k[(k.indexOf(this.tab) + step + k.length) % k.length]; this.$nextTick(() => this.$root.querySelector('[data-tab=' + this.tab + ']').focus()); } }">
-                        <div role="tablist" aria-label="Request parts" class="mb-3 flex flex-wrap gap-1 border-b border-zinc-200 text-sm"
+                        <div role="tablist" aria-label="Request parts" class="mb-3 flex gap-1 overflow-x-auto border-b border-zinc-200 text-sm"
                              x-on:keydown.right.prevent="move(1)" x-on:keydown.left.prevent="move(-1)">
                             @foreach ($tabs as $key => $label)
                                 <button type="button" role="tab" id="tab-{{ $key }}" data-tab="{{ $key }}" aria-controls="panel-{{ $key }}"
@@ -206,7 +206,7 @@
                                         x-bind:aria-selected="tab === '{{ $key }}'"
                                         x-bind:tabindex="tab === '{{ $key }}' ? 0 : -1"
                                         x-bind:class="tab === '{{ $key }}' ? 'border-accent-600 font-medium text-accent-700' : 'border-transparent text-zinc-600 hover:text-zinc-900'"
-                                        class="-mb-px border-b-2 px-3 py-2">{{ $label }}</button>
+                                        class="-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2">{{ $label }}</button>
                             @endforeach
                         </div>
 
@@ -291,7 +291,7 @@
                                 </fieldset>
                                 @if ($form['body']['mode'] === 'raw')
                                     <label for="body-raw" class="sr-only">Raw body</label>
-                                    <textarea id="body-raw" wire:model.live.blur="form.body.raw" rows="12" spellcheck="false" class="{{ $mono }} leading-relaxed"></textarea>
+                                    <textarea id="body-raw" wire:model.live.blur="form.body.raw" rows="12" spellcheck="false" class="{{ $mono }} resize-y leading-relaxed"></textarea>
                                 @elseif (in_array($form['body']['mode'], ['urlencoded', 'formdata'], true))
                                     @include('livewire.partials.key-value-rows', ['list' => 'body.fields', 'rows' => $form['body']['fields'], 'addLabel' => 'Add field', 'empty' => 'No fields.'])
                                 @else
@@ -304,11 +304,11 @@
                         <div role="tabpanel" id="panel-scripts" aria-labelledby="tab-scripts" x-show="tab === 'scripts'" x-cloak class="grid gap-3 text-sm lg:grid-cols-2">
                             <div>
                                 <label for="script-prerequest" class="mb-1 block font-medium">Pre-request</label>
-                                <textarea id="script-prerequest" wire:model.live.blur="form.prerequest" rows="14" spellcheck="false" class="{{ $mono }} leading-relaxed" placeholder="pm.environment.set('now', Date.now());"></textarea>
+                                <textarea id="script-prerequest" wire:model.live.blur="form.prerequest" rows="14" spellcheck="false" class="{{ $mono }} resize-y leading-relaxed" placeholder="pm.environment.set('now', Date.now());"></textarea>
                             </div>
                             <div>
                                 <label for="script-test" class="mb-1 block font-medium">Post-response</label>
-                                <textarea id="script-test" wire:model.live.blur="form.test" rows="14" spellcheck="false" class="{{ $mono }} leading-relaxed" placeholder="pm.test('status is 200', () => pm.response.to.have.status(200));"></textarea>
+                                <textarea id="script-test" wire:model.live.blur="form.test" rows="14" spellcheck="false" class="{{ $mono }} resize-y leading-relaxed" placeholder="pm.test('status is 200', () => pm.response.to.have.status(200));"></textarea>
                             </div>
                             <p class="text-xs text-zinc-500 lg:col-span-2">
                                 Postman CLI runs these scripts (pm.*). Values a script sets with pm.environment.set() last for that run only — they are not written back to the environment here.
@@ -320,8 +320,8 @@
 
                 {{-- Send result --}}
                 @if ($sendRun)
-                    <div class="mt-4" @if ($sendRun->status->isActive()) wire:poll.1s @endif aria-live="polite">
-                        <div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
+                    <div class="mt-4" @if ($sendRun->status->isActive()) wire:poll.1s @endif>
+                        <div class="mb-2 flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
                             <h3 class="font-semibold">Response</h3>
                             <x-status-badge :status="$sendRun->status" :no-tests="$sendRun->hasNoTests()" />
                             @if ($sendRun->status->isActive())
@@ -357,14 +357,14 @@
                         <ol wire:sort="sortSequence" class="mb-4 divide-y divide-zinc-100 rounded border border-zinc-200" aria-label="Requests in run order">
                             @foreach ($sequence as $i => $row)
                                 <li wire:key="seq-{{ $row['id'] }}" wire:sort:item="{{ $row['id'] }}" class="flex items-center gap-2 bg-surface px-2 py-1.5">
-                                    <span wire:sort:handle class="cursor-grab select-none px-1 text-zinc-400" aria-hidden="true" title="Drag to reorder">⠿</span>
-                                    <span class="w-6 shrink-0 text-right tabular-nums text-zinc-500">{{ $i + 1 }}</span>
+                                    <span wire:sort:handle class="cursor-grab touch-none select-none px-2 py-1 text-zinc-400" aria-hidden="true" title="Drag to reorder">⠿</span>
+                                    <span class="min-w-8 shrink-0 text-right tabular-nums text-zinc-500">{{ $i + 1 }}</span>
                                     <input type="checkbox" id="seq-{{ $i }}" wire:model.live="sequence.{{ $i }}.checked" class="shrink-0">
                                     <label for="seq-{{ $i }}" class="flex min-w-0 flex-1 items-center gap-2">
-                                        <span class="w-12 shrink-0 font-mono text-[0.65rem] font-semibold {{ $methodColour($row['method']) }}">{{ $row['method'] }}</span>
-                                        <span class="truncate" title="{{ $row['name'] }}">{{ $row['name'] }}</span>
+                                        <span class="min-w-12 shrink-0 font-mono text-[0.65rem] font-semibold {{ $methodColour($row['method']) }}">{{ $row['method'] }}</span>
+                                        <span class="line-clamp-2 min-w-0 flex-1 wrap-anywhere lg:truncate" title="{{ $row['name'] }}">{{ $row['name'] }}</span>
                                         @if ($row['folder'])
-                                            <span class="hidden truncate text-xs text-zinc-500 sm:inline">in {{ $row['folder'] }}</span>
+                                            <span class="hidden max-w-[40%] shrink-0 truncate text-xs text-zinc-500 sm:inline" title="{{ $row['folder'] }}">in {{ $row['folder'] }}</span>
                                         @endif
                                     </label>
                                     <button type="button" wire:click="moveInSequence({{ $i }}, -1)" @disabled($i === 0) class="rounded px-1.5 py-0.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-30" aria-label="Move {{ $row['name'] }} up">↑</button>
@@ -373,17 +373,21 @@
                             @endforeach
                         </ol>
 
-                        <label class="mb-4 flex items-start gap-2">
+                        <div class="sticky bottom-0 -mx-4 -mb-4 border-t border-zinc-200 bg-surface px-4 py-3">
+                        <label class="mb-3 flex items-start gap-2">
                             <input type="checkbox" wire:model="bail" class="mt-1">
                             <span><span class="font-medium">Stop run if an error occurs</span><br><span class="text-xs text-zinc-600">Stops after the first request whose test fails or that cannot be sent.</span></span>
                         </label>
 
                         @error('sequence') <p role="alert" class="mb-2 text-sm font-medium text-red-700">{{ $message }}</p> @enderror
+                        @error('confirmProduction') <p role="alert" class="mb-2 text-sm font-medium text-red-700">{{ $message }}</p> @enderror
+                        @error('run') <p role="alert" class="mb-2 text-sm font-medium text-red-700">{{ $message }}</p> @enderror
                         <button type="button" wire:click="runSequence" @disabled($environments->isEmpty() || $checkedCount === 0)
                                 class="rounded bg-primary px-4 py-1.5 font-medium text-white hover:bg-primary-hover disabled:opacity-60" wire:loading.attr="disabled" wire:target="runSequence">
                             <span aria-hidden="true">▶</span> Run {{ $checkedCount }} of {{ count($sequence) }} {{ Str::plural('request', count($sequence)) }}
                         </button>
-                        <span class="ml-2 text-xs text-zinc-500">on {{ $selectedEnvironment?->name ?? 'no environment' }}</span>
+                        <span class="ml-2 wrap-anywhere text-xs text-zinc-500">on {{ $selectedEnvironment?->name ?? 'no environment' }}</span>
+                        </div>
                     @endif
                 </div>
             @else
@@ -393,7 +397,7 @@
                         <dt class="text-zinc-500">File</dt><dd class="wrap-anywhere">{{ $collection->original_filename }} ({{ $collection->schema_version }})</dd>
                         <dt class="text-zinc-500">Requests</dt><dd>{{ $requestCount }}</dd>
                         <dt class="text-zinc-500">Auth</dt><dd>{{ $summary['auth'] ?? 'none' }}</dd>
-                        <dt class="text-zinc-500">Updated</dt><dd>{{ $collection->updated_at->diffForHumans() }}</dd>
+                        <dt class="text-zinc-500">Updated</dt><dd><time datetime="{{ $collection->updated_at->toIso8601String() }}" title="{{ $collection->updated_at->format('Y-m-d H:i:s T') }}">{{ $collection->updated_at->diffForHumans() }}</time></dd>
                     </dl>
                     <p class="mb-4 text-xs text-zinc-500">Collection-level auth, scripts and variables are shown here read-only. Change them in Postman and use Replace file on the Collections page.</p>
 

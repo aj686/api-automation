@@ -318,7 +318,7 @@ class CollectionShow extends Component
         }
 
         $all = array_column($this->document()->requests(), 'id');
-        $options = RunOptions::forSelection(array_map(fn ($row) => ['id' => $row['id'], 'name' => $row['name']], $chosen), $all, $this->bail);
+        $options = RunOptions::forSelection(array_map(fn ($row) => ['id' => $row['id'], 'name' => Str::limit($row['name'], self::NAME_MAX, '')], $chosen), $all, $this->bail);
 
         if ($run = $this->start($runs, RunTrigger::Manual, $options)) {
             $this->redirectRoute('runs.show', $run);
