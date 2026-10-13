@@ -26,6 +26,13 @@
         @endif
     </div>
 
+    @if ($sequence = $run->sequenceSummary())
+        <p class="mb-4 rounded border border-zinc-200 bg-surface px-3 py-2 text-sm text-zinc-700">
+            <span class="font-medium">{{ $run->trigger === \App\Enums\RunTrigger::Send ? 'Sent from the editor' : 'Run sequence' }}:</span>
+            <span class="wrap-anywhere">{{ $sequence }}</span>
+        </p>
+    @endif
+
     @if ($run->error_message)
         <p role="alert" class="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
             <span aria-hidden="true">⚠</span>

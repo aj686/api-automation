@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Enums\RunStatus;
+use App\Enums\RunTrigger;
 use App\Models\Project;
 use App\Models\Run;
 use Illuminate\Contracts\View\View;
@@ -45,6 +46,10 @@ class Runs extends Component
     #[Url(as: 'project', except: '')]
     public string $projectFilter = '';
 
+    /** Single requests sent from the collection editor are hidden unless asked for (D-038). */
+    #[Url(as: 'sends', except: false)]
+    public bool $showSends = false;
+
     public function mount(?Project $project = null): void
     {
         $this->project = $project;
@@ -60,6 +65,11 @@ class Runs extends Component
         $this->resetPage();
     }
 
+    public function updatedShowSends(): void
+    {
+        $this->resetPage();
+    }
+
     public function render(): View
     {
         // An unknown value from the query string falls back to All.
@@ -70,6 +80,7 @@ class Runs extends Component
         $runs = Run::query()
             ->when($projectId !== null, fn ($query) => $query->where('project_id', $projectId))
             ->when($statuses, fn ($query) => $query->whereIn('status', $statuses))
+            ->when(! $this->showSends, fn ($query) => $query->where('trigger', '!=', RunTrigger::Send))
             ->latest()
             ->latest('id')
             ->paginate(self::PER_PAGE);

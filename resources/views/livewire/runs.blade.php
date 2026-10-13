@@ -24,6 +24,10 @@
             </div>
         </fieldset>
 
+        <label class="inline-flex items-center gap-1.5 py-1.5">
+            <input type="checkbox" wire:model.live="showSends"> Show sends
+        </label>
+
         @unless ($project)
             <div>
                 <label for="projectFilter" class="sr-only">Project</label>
@@ -75,6 +79,11 @@
                             @endif
                             @if ($run->trigger === \App\Enums\RunTrigger::Api)
                                 <span class="ml-1 text-xs text-zinc-500">via API</span>
+                            @elseif ($run->trigger === \App\Enums\RunTrigger::Send)
+                                <span class="ml-1 text-xs text-zinc-500">send</span>
+                            @endif
+                            @if ($run->trigger !== \App\Enums\RunTrigger::Send && ($sequence = $run->sequenceSummary()))
+                                <p class="line-clamp-1 text-xs text-zinc-500" title="{{ $sequence }}">{{ $sequence }}</p>
                             @endif
                         </td>
                         {{-- NULL counts are "unknown", shown as a dash, never as 0. --}}

@@ -136,6 +136,80 @@ try {
     await shot('run-detail');
   });
 
+  await step('collection workbench: tree, request tabs, Ctrl+S save, Send shows the response (D-038)', async () => {
+    await page.goto(`${BASE}/projects/${SLUG}/collections/api-automation-self-check`);
+    const tree = page.getByRole('complementary', { name: 'Requests' });
+    await tree.getByText('API refuses a call without a token').waitFor();
+    await tree.getByText('Unknown API path is a clean 404').waitFor();
+    if ((await page.locator('#form-name').inputValue()) !== 'Health page') throw new Error('first request not open');
+
+    for (const tab of ['Authorization', 'Headers', 'Body']) {
+      await page.getByRole('tab', { name: new RegExp('^' + tab) }).click();
+      await page.locator(`#panel-${{ Authorization: 'auth', Headers: 'headers', Body: 'body' }[tab]}`).waitFor({ state: 'visible', timeout: 5000 });
+    }
+    await page.getByRole('tab', { name: /^Scripts/ }).click();
+    if (!(await page.locator('#script-test').inputValue()).includes('pm.test')) throw new Error('test script not shown');
+
+    await page.locator('#form-name').fill('Health page (edited)');
+    await page.locator('#form-name').blur();
+    await expectText('Unsaved');
+    await page.keyboard.press('Control+s');
+    await expectText('Saved Health page (edited).');
+
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    await page.getByRole('heading', { name: 'Response' }).waitFor({ timeout: 10000 });
+    await page.locator('article[wire\\:key^="request-"]').first().waitFor({ timeout: 60000 });
+    await page.locator('article[wire\\:key^="request-"]').first().getByText('200 OK').waitFor({ timeout: 10000 });
+    await shot('workbench-send');
+  });
+
+  await step('runner: drag, untick, move up, stop on error, run in the chosen order (D-038)', async () => {
+    await page.getByRole('complementary', { name: 'Requests' }).getByRole('button', { name: 'Runner' }).click();
+    await expectText('Run 3 of 3 requests');
+    const rows = page.locator('ol[aria-label="Requests in run order"] > li');
+    const order = async () => (await rows.allInnerTexts()).map((t) => (t.match(/(Health page \(edited\)|API refuses a call without a token|Unknown API path is a clean 404)/) || [t])[0]);
+
+    // Drag by the handle (SortableJS via wire:sort), at human speed: faster moves
+    // fall inside Sortable's 150 ms animation and only the first swap counts.
+    // Under Playwright the FIRST drag after page load starts but never reorders
+    // (seen with native and fallback drag, D-038); whether a real mouse hits
+    // this is UNVERIFIED, so the first drag below is not asserted.
+    const drag = async (fromIdx, toIdx) => {
+      const h = await rows.nth(fromIdx).locator('[wire\\:sort\\:handle]').boundingBox();
+      const t = await rows.nth(toIdx).boundingBox();
+      const x = h.x + h.width / 2, y0 = h.y + h.height / 2, y1 = t.y + t.height / 4;
+      await page.mouse.move(x, y0);
+      await page.mouse.down();
+      for (let i = 1; i <= 20; i++) { await page.mouse.move(x, y0 + (y1 - y0) * (i / 20)); await page.waitForTimeout(40); }
+      await page.mouse.up();
+      await page.waitForTimeout(1000);
+    };
+    await drag(2, 0);
+    if ((await order()).join('|') !== 'Unknown API path is a clean 404|Health page (edited)|API refuses a call without a token') {
+      console.log('NOTE  first drag after load did not reorder (known under synthetic input, D-038); dragging again');
+      await drag(2, 0);
+    }
+    let now = await order();
+    if (now.join('|') !== 'Unknown API path is a clean 404|Health page (edited)|API refuses a call without a token') throw new Error('drag gave ' + now.join(' | '));
+
+    await rows.filter({ hasText: 'Unknown API path' }).locator('input[type="checkbox"]').uncheck();
+    await expectText('Run 2 of 3 requests');
+    await page.getByRole('button', { name: 'Move API refuses a call without a token up' }).click();
+    await page.waitForFunction(() => document.querySelectorAll('ol[aria-label="Requests in run order"] > li')[1]?.innerText.includes('API refuses'), null, { timeout: 5000 });
+    await page.getByLabel(/Stop run if an error occurs/).check();
+    await shot('runner');
+
+    await page.getByRole('button', { name: /Run 2 of 3 requests/ }).click();
+    await page.waitForURL('**/runs/*');
+    await expectText('API refuses a call without a token → Health page (edited) · stop on error');
+    await expectText('Results', 90000);
+    const cards = page.locator('article[wire\\:key^="request-"]');
+    await page.waitForFunction(() => document.querySelectorAll('article[wire\\:key^="request-"]').length === 2, null, { timeout: 90000 });
+    if (!(await cards.nth(0).innerText()).includes('API refuses')) throw new Error('first card is not the first chosen request');
+    if (!(await cards.nth(1).innerText()).includes('Health page (edited)')) throw new Error('second card is not the edited Health page');
+    await shot('run-sequence');
+  });
+
   await step('capture URL: create, enable, receive a call, credential header kept as [present]', async () => {
     await page.goto(`${BASE}/projects/${SLUG}/captures`);
     await page.locator('#name').fill('Hook');

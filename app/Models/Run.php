@@ -58,6 +58,30 @@ class Run extends Model
     }
 
     /**
+     * "GetProjectInfo → Login · stop on error" for a run that did not send the
+     * whole collection in file order; null for one that did (D-038).
+     */
+    public function sequenceSummary(): ?string
+    {
+        $options = $this->runOptions();
+        if ($options->isDefault()) {
+            return null;
+        }
+
+        $parts = [];
+        if ($options->items !== []) {
+            $names = array_column($options->items, 'name');
+            $shown = array_slice($names, 0, 5);
+            $parts[] = implode(' → ', $shown).(count($names) > 5 ? ' → +'.(count($names) - 5).' more' : '');
+        }
+        if ($options->bail) {
+            $parts[] = 'stop on error';
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    /**
      * A PASS that checked nothing proves nothing (plan section 5).
      */
     public function hasNoTests(): bool

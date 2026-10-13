@@ -2,6 +2,7 @@
 
 use App\Livewire\Captures;
 use App\Livewire\Collections;
+use App\Livewire\CollectionShow;
 use App\Livewire\Dashboard;
 use App\Livewire\Environments;
 use App\Livewire\EnvironmentShow;
@@ -10,6 +11,7 @@ use App\Livewire\ProjectShow;
 use App\Livewire\Runs;
 use App\Livewire\RunShow;
 use App\Livewire\Settings;
+use App\Http\Controllers\CollectionDownloadController;
 use Illuminate\Support\Facades\Route;
 
 Route::livewire('/', Dashboard::class)->name('dashboard');
@@ -21,6 +23,8 @@ Route::livewire('/projects/{project:slug}/runs', Runs::class)->name('projects.ru
 Route::livewire('/projects/{project:slug}/captures', Captures::class)->name('projects.captures');
 // {environment:slug} is scoped to {project}: another project's slug is a 404.
 Route::livewire('/projects/{project:slug}/environments/{environment:slug}', EnvironmentShow::class)->name('projects.environments.show');
+Route::livewire('/projects/{project:slug}/collections/{collection:slug}', CollectionShow::class)->name('projects.collections.show');
+Route::get('/projects/{project:slug}/collections/{collection:slug}/download', CollectionDownloadController::class)->name('projects.collections.download');
 
 Route::livewire('/runs', Runs::class)->name('runs');
 // By ULID, not slug: runs outlive their project (plan section 4).

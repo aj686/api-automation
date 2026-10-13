@@ -49,6 +49,10 @@
                 @endif
             </form>
             @error('run') <p role="alert" class="mt-2 text-sm font-medium text-red-700">{{ $message }}</p> @enderror
+            <p class="mt-2 text-xs text-zinc-500">
+                Runs every request in collection order.
+                <a href="{{ route('projects.collections.show', [$project, $collections->firstWhere('id', $runCollectionId) ?? $collections->first()]) }}?pane=runner" class="text-accent-700 hover:underline">Choose requests and order →</a>
+            </p>
         @endif
 
         @if ($recentRuns->isNotEmpty())

@@ -33,7 +33,7 @@
                 @foreach ($collections as $collection)
                     <tr wire:key="collection-{{ $collection->id }}">
                         <th scope="row" class="px-3 py-2 text-left font-medium">
-                            {{ $collection->name }}
+                            <a href="{{ route('projects.collections.show', [$project, $collection]) }}" class="text-accent-700 hover:underline">{{ $collection->name }}</a>
                             <p class="font-mono text-xs font-normal text-zinc-500">{{ $collection->slug }}</p>
                         </th>
                         <td class="px-3 py-2">{{ $collection->kind->value }}</td>
@@ -42,6 +42,7 @@
                             <p>{{ $collection->schema_version }} · <span class="font-mono" title="SHA-256 {{ $collection->sha256 }}">{{ substr($collection->sha256, 0, 12) }}</span> · {{ $collection->updated_at->diffForHumans() }}</p>
                         </td>
                         <td class="whitespace-nowrap px-3 py-2 text-right text-xs">
+                            <a href="{{ route('projects.collections.show', [$project, $collection]) }}" class="rounded px-2 py-1 text-accent-700 hover:bg-zinc-100">Open</a>
                             <button type="button" wire:click="startReplace({{ $collection->id }})" class="rounded px-2 py-1 text-accent-700 hover:bg-zinc-100">Replace file</button>
                             <button type="button" wire:click="delete({{ $collection->id }})" wire:confirm="Delete the collection {{ $collection->name }}? Its run history is kept." class="rounded px-2 py-1 text-red-700 hover:bg-red-50">Delete</button>
                         </td>
