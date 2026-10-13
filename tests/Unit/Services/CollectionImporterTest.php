@@ -123,7 +123,12 @@ class CollectionImporterTest extends TestCase
     public function test_store_keeps_the_file_byte_for_byte_under_a_generated_path(): void
     {
         $project = Project::factory()->create();
-        $json = self::collection();
+        $json = self::collection([
+            ['id' => 'id-health', 'name' => 'Health', 'request' => ['method' => 'GET', 'url' => ['raw' => '{{base_url}}/health']]],
+            ['id' => 'id-folder', 'name' => 'Folder', 'item' => [
+                ['id' => 'id-list', 'name' => 'List', 'request' => ['method' => 'GET', 'url' => '{{base_url}}/items']],
+            ]],
+        ]);
 
         $collection = (new CollectionImporter)->store($project, $json, '../../etc/Demo.postman_collection.json');
 
@@ -133,6 +138,32 @@ class CollectionImporterTest extends TestCase
         $this->assertSame('Demo.postman_collection.json', $collection->original_filename, 'basename only');
         $this->assertSame('demo-smoke', $collection->slug);
         $this->assertSame('v2.1.0', $collection->schema_version);
+    }
+
+    public function test_items_without_a_unique_id_get_one_and_nothing_else_changes(): void
+    {
+        $json = self::collection([
+            ['name' => 'Health', 'request' => ['method' => 'GET', 'url' => '{{base_url}}/health'], 'protocolProfileBehavior' => new \stdClass],
+            ['id' => 'same', 'name' => 'A', 'request' => ['url' => '{{base_url}}/a']],
+            ['id' => 'same', 'name' => 'B', 'request' => ['url' => '{{base_url}}/b']],
+        ], ['auth' => ['type' => 'noauth'], 'variable' => []]);
+
+        $collection = (new CollectionImporter)->store(Project::factory()->create(), $json, 'x.json');
+        $stored = Storage::disk('local')->get($collection->stored_path);
+        $data = json_decode($stored, true);
+
+        $ids = array_column($data['item'], 'id');
+        $this->assertCount(3, array_unique($ids));
+        $this->assertSame('same', $ids[1], 'the first holder keeps its id');
+        $this->assertStringContainsString('"protocolProfileBehavior": {}', $stored, 'empty objects stay objects');
+        $this->assertStringContainsString('"variable": []', $stored);
+        $this->assertSame(hash('sha256', $stored), $collection->sha256);
+
+        $original = json_decode($json, true);
+        foreach ($data['item'] as $i => $item) {
+            unset($item['id'], $original['item'][$i]['id']);
+            $this->assertSame($original['item'][$i], $item);
+        }
     }
 
     public function test_a_failed_store_leaves_no_file(): void
@@ -155,7 +186,7 @@ class CollectionImporterTest extends TestCase
         $collection = $importer->store(Project::factory()->create(), self::collection(), 'v1.json');
         $oldPath = $collection->stored_path;
 
-        $newJson = self::collection([['name' => 'Only', 'request' => ['url' => '{{base_url}}/only']]]);
+        $newJson = self::collection([['id' => 'id-only', 'name' => 'Only', 'request' => ['url' => '{{base_url}}/only']]]);
         $importer->replace($collection, $newJson, 'v2.json');
 
         $collection->refresh();

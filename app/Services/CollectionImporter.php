@@ -7,16 +7,19 @@ use App\Exceptions\ImportException;
 use App\Models\Collection;
 use App\Models\EnvironmentVariable;
 use App\Models\Project;
+use App\Services\Postman\CollectionDocument;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Stores Postman collection exports for a project (decisions.md D-021).
+ * Stores Postman collection exports for a project (decisions.md D-021, D-038).
  *
- * The file is kept byte-for-byte — it stays a Postman artifact that Postman
- * CLI runs — under storage/app/private/collections/<ulid>.json, a path this
- * class generates, never one taken from the upload.
+ * The file stays a Postman artifact that Postman CLI runs, under
+ * storage/app/private/collections/<ulid>.json, a path this class generates,
+ * never one taken from the upload. It is kept byte-for-byte unless an item
+ * has no unique `id`: then ids are added, because the Run sequence selects
+ * items by id (`-i`).
  */
 class CollectionImporter
 {
@@ -86,6 +89,7 @@ class CollectionImporter
     public function store(Project $project, string $json, string $originalFilename, array $attributes = []): Collection
     {
         $info = $this->inspect($json);
+        $json = $this->withIds($json);
         $path = $this->write($json);
 
         try {
@@ -111,6 +115,7 @@ class CollectionImporter
     public function replace(Collection $collection, string $json, string $originalFilename): Collection
     {
         $info = $this->inspect($json);
+        $json = $this->withIds($json);
         $oldPath = $collection->stored_path;
         $newPath = $this->write($json);
 
@@ -130,6 +135,44 @@ class CollectionImporter
         Storage::disk(self::DISK)->delete($oldPath);
 
         return $collection;
+    }
+
+    /**
+     * Writes an edited collection (the editor's Save). Refused when the file
+     * changed since the editor read it, so a second tab or a Replace file in
+     * between is not silently overwritten.
+     *
+     * @return list<string> warnings, counts only
+     */
+    public function save(Collection $collection, CollectionDocument $document, string $expectedSha256): array
+    {
+        if (! hash_equals($collection->sha256, $expectedSha256)) {
+            throw new ImportException('This collection was changed elsewhere (another tab or Replace file). Reload the page; your unsaved edits are lost.');
+        }
+
+        $document->ensureIds();
+        $json = $document->toJson();
+        $info = $this->inspect($json);
+        $this->replace($collection, $json, $collection->original_filename);
+
+        return $info['warnings'];
+    }
+
+    public function document(Collection $collection): CollectionDocument
+    {
+        $json = Storage::disk(self::DISK)->get($collection->stored_path);
+        if ($json === null) {
+            throw new ImportException('The collection file is missing from storage. Replace the file to restore it.');
+        }
+
+        return CollectionDocument::fromJson($json);
+    }
+
+    private function withIds(string $json): string
+    {
+        $document = CollectionDocument::fromJson($json);
+
+        return $document->ensureIds() ? $document->toJson() : $json;
     }
 
     private function write(string $json): string
