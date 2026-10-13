@@ -226,4 +226,13 @@ class ReportParserTest extends TestCase
 
         $this->assertSame($this->payloadRequests(), $compacted);
     }
+
+    public function test_bail_reports_a_failed_assertion_as_fail_not_a_script_error(): void
+    {
+        $parsed = $this->parse('bail', 1);
+
+        $this->assertSame(RunStatus::Fail, $parsed->status);
+        $this->assertNull($parsed->errorCode);
+        $this->assertSame([1, 2, 1], [$parsed->totalRequests, $parsed->totalAssertions, $parsed->failedAssertions], 'the CLI stopped after the first request');
+    }
 }

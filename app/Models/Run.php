@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\RunStatus;
 use App\Enums\RunTrigger;
+use App\Services\RunOptions;
 use Database\Factories\RunFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'project_id', 'environment_id', 'collection_id',
     'project_name', 'environment_name', 'environment_type', 'collection_name',
-    'status', 'trigger', 'cancel_requested_at', 'pid', 'exit_code', 'cli_version',
+    'status', 'trigger', 'options', 'cancel_requested_at', 'pid', 'exit_code', 'cli_version',
     'timeout_seconds', 'started_at', 'finished_at', 'duration_ms',
     'total_requests', 'total_assertions', 'passed_assertions', 'failed_assertions',
     'error_code', 'error_message', 'log',
@@ -44,10 +45,16 @@ class Run extends Model
         return [
             'status' => RunStatus::class,
             'trigger' => RunTrigger::class,
+            'options' => 'array',
             'cancel_requested_at' => 'datetime',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];
+    }
+
+    public function runOptions(): RunOptions
+    {
+        return RunOptions::fromArray($this->options);
     }
 
     /**

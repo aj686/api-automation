@@ -19,13 +19,13 @@ use InvalidArgumentException;
  */
 class RunService
 {
-    public function start(Environment $environment, Collection $collection, RunTrigger $trigger): Run
+    public function start(Environment $environment, Collection $collection, RunTrigger $trigger, ?RunOptions $options = null): Run
     {
         if ($environment->project_id !== $collection->project_id) {
             throw new InvalidArgumentException('The environment and collection belong to different projects.');
         }
 
-        $run = DB::transaction(function () use ($environment, $collection, $trigger) {
+        $run = DB::transaction(function () use ($environment, $collection, $trigger, $options) {
             // Serialises concurrent starts for the same target.
             $active = Run::query()
                 ->where('environment_id', $environment->id)
@@ -50,6 +50,7 @@ class RunService
                 'collection_name' => $collection->name,
                 'status' => RunStatus::Queued,
                 'trigger' => $trigger,
+                'options' => $options?->toArray(),
                 'timeout_seconds' => config('automation.run_timeout_seconds'),
             ]);
         });

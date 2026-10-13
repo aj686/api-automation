@@ -69,4 +69,53 @@ class RealPostmanCliTest extends TestCase
         $this->assertStringNotContainsString('YOUR_API_KEY', $request->toJson());
         $this->assertSame($request->id, $run->results()->sole()->run_request_id);
     }
+
+    public function test_a_real_run_sequence_keeps_the_chosen_order_and_bail_stops_it(): void
+    {
+        if ((new ExecutableFinder)->find('postman') === null) {
+            $this->markTestSkipped('Postman CLI is not installed here; run this in the api-automation-worker container.');
+        }
+
+        Storage::fake(CollectionImporter::DISK);
+        config(['automation.postman_cli_path' => 'postman', 'automation.runs_directory' => storage_path('framework/testing/real-runs')]);
+
+        $environment = Environment::factory()->create();
+        $environment->variables()->createMany([
+            ['key' => 'base_url', 'value' => 'http://nginx'],
+            ['key' => 'host', 'value' => 'api-automation.local'],
+        ]);
+        // No ids in the file: the importer adds them (D-038).
+        $request = fn (string $name, int $expect) => [
+            'name' => $name,
+            'request' => ['method' => 'GET', 'header' => [['key' => 'Host', 'value' => '{{host}}']], 'url' => '{{base_url}}/up?r='.$name],
+            'event' => [['listen' => 'test', 'script' => ['exec' => ['pm.test("'.$name.' is '.$expect.'", function () { pm.response.to.have.status('.$expect.'); });']]]],
+        ];
+        $collection = app(CollectionImporter::class)->store($environment->project, json_encode([
+            'info' => ['name' => 'Real Sequence', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
+            'item' => [['name' => 'Folder', 'item' => [$request('A', 200), $request('B', 201)]], $request('C', 200)],
+        ]), 'real.json');
+        $ids = collect(app(CollectionImporter::class)->document($collection)->requests())->keyBy('name')->map(fn ($r) => $r['id']);
+
+        $runWith = function (array $names, bool $bail) use ($environment, $collection, $ids): Run {
+            $run = Run::factory()->create([
+                'project_id' => $environment->project_id, 'environment_id' => $environment->id, 'collection_id' => $collection->id,
+                'options' => ['items' => array_map(fn ($n) => ['id' => $ids[$n], 'name' => $n], $names), 'bail' => $bail],
+            ]);
+            (new ExecuteRun($run->id))->handle(app(PostmanCli::class));
+
+            return $run->fresh();
+        };
+
+        $run = $runWith(['C', 'A'], false);
+        $this->assertSame(RunStatus::Pass, $run->status, (string) $run->error_message);
+        $this->assertSame(['C', 'A'], $run->requests()->orderBy('position')->pluck('item_name')->all());
+
+        $run = $runWith(['B', 'C'], false);
+        $this->assertSame(RunStatus::Fail, $run->status);
+        $this->assertSame(['B', 'C'], $run->requests()->orderBy('position')->pluck('item_name')->all());
+
+        $run = $runWith(['B', 'C'], true);
+        $this->assertSame(RunStatus::Fail, $run->status, 'bail still reports the failure');
+        $this->assertSame(['B'], $run->requests()->orderBy('position')->pluck('item_name')->all(), 'bail stopped after B');
+    }
 }

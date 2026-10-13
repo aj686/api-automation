@@ -12,6 +12,7 @@ if [ "${1:-}" = "--version" ]; then
 fi
 
 collection="$3"
+all_args="$*"
 report=""
 environment=""
 while [ $# -gt 0 ]; do
@@ -36,6 +37,10 @@ case "$mode" in
     noreport)
         echo "Error: collection could not be loaded" >&2
         exit 1 ;;
+    echoargs)
+        # Prints its arguments, for the Run sequence flags (D-038).
+        echo "args: $all_args"
+        replay pass 0 ;;
     echoenv)
         # Prints the environment file and its mode, as a leak would.
         echo "env-mode=$(stat -c %a "$environment")"

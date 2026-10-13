@@ -10,6 +10,7 @@ use App\Livewire\ProjectShow;
 use App\Models\Collection;
 use App\Models\Environment;
 use App\Models\Run;
+use App\Services\RunOptions;
 use App\Services\RunService;
 use App\Support\StaleRunRecovery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,6 +52,21 @@ class RunServiceTest extends TestCase
         $this->assertSame($collection->name, $run->collection_name);
         $this->assertSame(300, $run->timeout_seconds);
         Queue::assertPushed(ExecuteRun::class, fn (ExecuteRun $job) => $job->runId === $run->id);
+    }
+
+    public function test_start_keeps_the_run_sequence_and_a_full_run_stores_none(): void
+    {
+        [$environment, $collection] = $this->target();
+        $service = app(RunService::class);
+
+        $run = $service->start($environment, $collection, RunTrigger::Send, new RunOptions([['id' => 'id-b', 'name' => 'B']], bail: true));
+        $this->assertEquals(['items' => [['id' => 'id-b', 'name' => 'B']], 'bail' => true], $run->fresh()->options, 'MySQL JSON reorders keys');
+        $this->assertSame(RunTrigger::Send, $run->fresh()->trigger);
+        $run->update(['status' => RunStatus::Pass]);
+
+        $run = $service->start($environment, $collection, RunTrigger::Manual, new RunOptions);
+        $this->assertNull($run->fresh()->options);
+        $this->assertTrue($run->runOptions()->isDefault());
     }
 
     public function test_a_second_start_while_active_is_refused(): void

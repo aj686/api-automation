@@ -3,6 +3,7 @@
 namespace App\Services\Postman;
 
 use App\Enums\RunStatus;
+use App\Exceptions\ImportException;
 use App\Models\EnvironmentVariable;
 use App\Models\Run;
 use App\Models\WorkerHeartbeat;
@@ -52,6 +53,14 @@ class PostmanCli
             return $this->error('collection_missing', 'The stored collection file is missing. Import the collection again.');
         }
 
+        $options = $run->runOptions();
+        if ($options->items !== []) {
+            $missing = $this->missingItems($collectionPath, $options->items);
+            if ($missing !== []) {
+                return $this->error('items_missing', 'The collection changed after the run was started: '.Str::plural('selected request', count($missing), true).' ('.implode(', ', $missing).') no longer '.(count($missing) === 1 ? 'exists' : 'exist').'. Start the run again.');
+            }
+        }
+
         if (! $this->cliAvailable()) {
             return $this->error('cli_missing', 'Postman CLI could not be started. Check that it is installed in the runner container and that POSTMAN_CLI_PATH in .env points to it ('.config('automation.postman_cli_path').').');
         }
@@ -68,7 +77,7 @@ class PostmanCli
         try {
             $this->writeEnvironment($environmentPath, $environment->name, $variables, $run);
 
-            $command = $this->commands->build($collectionPath, $environmentPath, $directory, $reportPath, config('automation.request_timeout_ms'));
+            $command = $this->commands->build($collectionPath, $environmentPath, $directory, $reportPath, config('automation.request_timeout_ms'), $options->itemIds(), $options->bail);
             $process = Process::path($directory)->forever()->start($command);
             // Read once: Symfony returns null as soon as the process has exited,
             // which a CLI failing instantly (broken collection) can do before this line.
@@ -243,6 +252,27 @@ class PostmanCli
      * Resolves the stored path and refuses anything outside the collections
      * directory (plan section 6: realpath-checked).
      */
+    /**
+     * Names of selected requests that are not in the file any more. Postman
+     * CLI would only say "Unable to find request or folder" and write no report.
+     *
+     * @param  list<array{id: string, name: string}>  $items
+     * @return list<string>
+     */
+    private function missingItems(string $collectionPath, array $items): array
+    {
+        try {
+            $document = CollectionDocument::fromJson((string) file_get_contents($collectionPath));
+        } catch (ImportException) {
+            return array_column($items, 'name');
+        }
+
+        return array_values(array_map(
+            fn (array $item) => $item['name'] !== '' ? $item['name'] : $item['id'],
+            array_filter($items, fn (array $item) => ! $document->isRequest($item['id'])),
+        ));
+    }
+
     private function collectionPath(string $storedPath): ?string
     {
         $root = realpath(Storage::disk(CollectionImporter::DISK)->path(CollectionImporter::DIRECTORY));

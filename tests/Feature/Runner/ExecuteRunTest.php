@@ -43,7 +43,7 @@ class ExecuteRunTest extends TestCase
         parent::tearDown();
     }
 
-    private function queuedRun(string $mode, array $variables = []): Run
+    private function queuedRun(string $mode, array $variables = [], ?array $options = null): Run
     {
         $environment = Environment::factory()->create();
         foreach ($variables as $key => [$value, $secret]) {
@@ -52,7 +52,10 @@ class ExecuteRunTest extends TestCase
 
         $collection = app(CollectionImporter::class)->store($environment->project, json_encode([
             'info' => ['name' => 'Fake '.$mode, 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
-            'item' => [],
+            'item' => [
+                ['id' => 'id-a', 'name' => 'A', 'request' => ['url' => '{{base_url}}/a']],
+                ['id' => 'id-f', 'name' => 'F', 'item' => [['id' => 'id-b', 'name' => 'B', 'request' => ['url' => '{{base_url}}/b']]]],
+            ],
             'fake_mode' => $mode,
         ]), 'fake.json');
 
@@ -60,6 +63,7 @@ class ExecuteRunTest extends TestCase
             'project_id' => $environment->project_id,
             'environment_id' => $environment->id,
             'collection_id' => $collection->id,
+            'options' => $options,
         ]);
     }
 
@@ -232,6 +236,28 @@ class ExecuteRunTest extends TestCase
         $run = $this->queuedRun('pass');
         Storage::disk('local')->delete($run->collection->stored_path);
         $this->assertSame('collection_missing', $this->execute($run)->error_code);
+    }
+
+    public function test_a_run_sequence_passes_request_ids_in_order_and_bail(): void
+    {
+        $run = $this->execute($this->queuedRun('echoargs', options: ['items' => [['id' => 'id-b', 'name' => 'B'], ['id' => 'id-a', 'name' => 'A']], 'bail' => true]));
+
+        $this->assertSame(RunStatus::Pass, $run->status, (string) $run->error_message);
+        $this->assertStringContainsString('--timeout-request 30000 -i id-b -i id-a --bail', $run->log);
+
+        $run = $this->execute($this->queuedRun('echoargs'));
+        $this->assertStringNotContainsString(' -i ', $run->log, 'no selection: the whole collection');
+        $this->assertStringNotContainsString('--bail', $run->log);
+    }
+
+    public function test_a_selected_request_that_was_removed_since_the_start_is_a_clear_error(): void
+    {
+        $run = $this->execute($this->queuedRun('echoargs', options: ['items' => [['id' => 'id-a', 'name' => 'A'], ['id' => 'gone', 'name' => 'Old login'], ['id' => 'id-f', 'name' => 'F']], 'bail' => false]));
+
+        $this->assertSame(RunStatus::Error, $run->status);
+        $this->assertSame('items_missing', $run->error_code);
+        $this->assertStringContainsString('2 selected requests (Old login, F) no longer exist', $run->error_message, 'a folder id is not a request');
+        $this->assertNull($run->log, 'the CLI never ran');
     }
 
     public function test_a_run_that_is_not_queued_is_left_alone(): void

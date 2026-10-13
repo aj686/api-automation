@@ -70,7 +70,10 @@ class ReportParser
                 $this->firstExecutionError($run['executions'], $redactor) ?? 'A request could not be sent.', ...$counts);
         }
 
-        $scriptErrors = ($this->int($summary, 'prerequestScripts', 'errors') ?? 0) + ($this->int($summary, 'postresponseScripts', 'errors') ?? 0);
+        // Under --bail a failed assertion is raised again as an `AssertionFailure`
+        // script error (1.71.0, D-038); the failed test already says it.
+        $scriptErrors = ($this->int($summary, 'prerequestScripts', 'errors') ?? 0) + ($this->int($summary, 'postresponseScripts', 'errors') ?? 0)
+            - $this->bailFailures($run['executions']);
         if ($scriptErrors > 0) {
             return new ParsedReport(RunStatus::Error, 'script_error',
                 $this->firstExecutionError($run['executions'], $redactor) ?? 'A pre-request or test script failed.', ...$counts);
@@ -350,7 +353,7 @@ class ReportParser
     {
         foreach ($executions as $execution) {
             foreach ((array) ($execution['errors'] ?? []) as $error) {
-                if (is_array($error) && isset($error['message'])) {
+                if (is_array($error) && isset($error['message']) && ! $this->isBailFailure($error)) {
                     $name = $execution['requestExecuted']['name'] ?? null;
 
                     return $this->message(($name ? "{$name}: " : '').$error['message'], $redactor);
@@ -359,6 +362,26 @@ class ReportParser
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<mixed>  $executions
+     */
+    private function bailFailures(array $executions): int
+    {
+        $count = 0;
+        foreach ($executions as $execution) {
+            foreach ((array) ($execution['errors'] ?? []) as $error) {
+                $count += $this->isBailFailure($error) ? 1 : 0;
+            }
+        }
+
+        return $count;
+    }
+
+    private function isBailFailure(mixed $error): bool
+    {
+        return is_array($error) && ($error['name'] ?? null) === 'AssertionFailure';
     }
 
     private function message(mixed $message, Redactor $redactor): string
