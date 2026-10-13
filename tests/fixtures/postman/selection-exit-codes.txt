@@ -1,0 +1,9 @@
+select_default exit=0 report=yes
+select_order exit=0 report=yes
+select_path exit=1 report=no
+select_id exit=0 report=yes
+select_dup exit=0 report=yes
+select_folder exit=0 report=yes
+bail exit=1 report=yes
+bail_failure exit=1 report=yes
+placeholder secret present in raw output of: bail.report.json bail_failure.report.json fail.report.json pass.report.json payload.report.json scripterror.report.json bail.stdout.txt bail_failure.stdout.txt fail.stdout.txt pass.stdout.txt payload.stdout.txt scripterror.stdout.txt 

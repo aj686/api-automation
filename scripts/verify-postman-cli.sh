@@ -100,6 +100,38 @@ run_case brokenjson --timeout-request 30000
 ENV_FILE="$WORK/payloadenv.json" run_case payload --timeout-request 30000
 kill "$PAYLOAD_SERVER" 2>/dev/null
 
+# Selection and order (D-038): -i by path, by item id, a duplicate name,
+# collection- and folder-level scripts, and --bail.
+req() { # req <id> <name>
+    printf '{"id":"%s","name":"%s","request":{"method":"GET","header":[{"key":"Host","value":"{{host}}"}],"url":"{{base_url}}/up?r=%s"},"event":[{"listen":"test","script":{"exec":["pm.test(\\"%s ok\\", function () { pm.response.to.have.status(200); });"]}}]}' "$1" "$2" "$1" "$2"
+}
+cat > "$WORK/select.json" <<JSON
+{"info":{"name":"Verify select","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+ "event":[{"listen":"test","script":{"exec":["pm.test(\"collection-level test\", function () {});"]}}],
+ "item":[
+  {"id":"id-folder-f","name":"F","event":[{"listen":"test","script":{"exec":["pm.test(\"folder-level test\", function () {});"]}}],
+   "item":[$(req id-a A),$(req id-b B),$(req id-dup-in-f Dup)]},
+  $(req id-c C),
+  $(req id-dup-top Dup)]}
+JSON
+cp "$WORK/select.json" "$WORK/select_default.json"
+cp "$WORK/select.json" "$WORK/select_order.json"
+cp "$WORK/select.json" "$WORK/select_path.json"
+cp "$WORK/select.json" "$WORK/select_id.json"
+cp "$WORK/select.json" "$WORK/select_dup.json"
+cp "$WORK/select.json" "$WORK/select_folder.json"
+cp "$WORK/fail.json" "$WORK/bail.json"
+cp "$WORK/fail.json" "$WORK/bail_failure.json"
+run_case select_default --timeout-request 30000
+run_case select_order --timeout-request 30000 -i id-c -i id-a -i id-dup-top -i id-b
+# 1.71.0: the "Folder/Request" form from --help is NOT found (exit 1, no report).
+run_case select_path --timeout-request 30000 -i F/A
+run_case select_id --timeout-request 30000 -i id-dup-top
+run_case select_dup --timeout-request 30000 -i Dup
+run_case select_folder --timeout-request 30000 -i F
+run_case bail --timeout-request 30000 --bail
+run_case bail_failure --timeout-request 30000 --bail failure
+
 # Resolved secrets in raw CLI output (the app redacts before storing anything).
 leaks=$(grep -l YOUR_API_KEY "$OUT"/*.report.json "$OUT"/*.stdout.txt 2>/dev/null | xargs -r -n1 basename | tr '\n' ' ')
 echo "placeholder secret present in raw output of: ${leaks:-nothing}" | tee -a "$OUT/exit-codes.txt"

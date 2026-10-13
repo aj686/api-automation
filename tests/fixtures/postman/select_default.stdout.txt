@@ -1,0 +1,66 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+Verify select
+
+Folder F
+Sub-folder A
+
+  GET http://nginx/up?r=id-a [200 OK, 1.07 KB, 79 ms]
+  Pass  collection-level test
+  Pass  folder-level test
+  Pass  A ok
+
+Sub-folder B
+
+  GET http://nginx/up?r=id-b [200 OK, 1.07 KB, 19 ms]
+  Pass  collection-level test
+  Pass  folder-level test
+  Pass  B ok
+
+Sub-folder Dup
+
+  GET http://nginx/up?r=id-dup-in-f [200 OK, 1.07 KB, 15 ms]
+  Pass  collection-level test
+  Pass  folder-level test
+  Pass  Dup ok
+
+Root C
+
+  GET http://nginx/up?r=id-c [200 OK, 1.07 KB, 23 ms]
+  Pass  collection-level test
+  Pass  C ok
+
+Root Dup
+
+  GET http://nginx/up?r=id-dup-top [200 OK, 1.07 KB, 15 ms]
+  Pass  collection-level test
+  Pass  Dup ok
+Generating run report [json]...
+Saving run report [json]...
+Report created successfully! Saved to: /tmp/pv/select_default.report.json
+
+----------------------------------------------------------------------
+|                         |            executed |             failed |
+--------------------------+---------------------+---------------------
+|              iterations |                   1 |                  0 |
+--------------------------+---------------------+---------------------
+|                requests |                   5 |                  0 |
+--------------------------+---------------------+---------------------
+|            test-scripts |                  13 |                  0 |
+--------------------------+---------------------+---------------------
+|      prerequest-scripts |                   0 |                  0 |
+--------------------------+---------------------+---------------------
+|              assertions |                  13 |                  0 |
+----------------------------------------------------------------------
+| total run duration: 355 ms                                         |
+----------------------------------------------------------------------
+| total data received: 4.14 KB (approx)                              |
+----------------------------------------------------------------------
+| average response time: 30 ms [min: 15 ms, max: 79 ms, s.d.: 24 ms] |
+----------------------------------------------------------------------
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command

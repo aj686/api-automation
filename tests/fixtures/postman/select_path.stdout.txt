@@ -1,0 +1,6 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+Error: Unable to find request or folder. Please ensure the specified request or folder exists in the collection.
+
