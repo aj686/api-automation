@@ -18,8 +18,7 @@ class LayoutTest extends TestCase
     public static function pages(): array
     {
         return [
-            'dashboard' => ['/', 'Dashboard'],
-            'projects' => ['/projects', 'Projects'],
+            'dashboard' => ['/home', 'Dashboard'],
             'runs' => ['/runs', 'Runs'],
             'settings' => ['/settings', 'Settings'],
         ];
@@ -96,8 +95,32 @@ class LayoutTest extends TestCase
             ->assertOk()
             ->assertSee('aria-controls="project-sidebar"', false)
             ->assertSee('<aside aria-label="Sidebar" id="project-sidebar"', false)
-            ->assertSeeInOrder(['Dashboard', 'Projects', 'Runs', 'Finance API', 'Settings', 'aria-label="Theme"'])
+            // No workspace yet: the rail has the pages, the panel lists the projects.
+            ->assertSeeInOrder(['Dashboard', 'All runs', 'Settings', 'aria-label="Theme"', 'Projects', 'Finance API'])
             // Open/closed is set in <head>, before the sidebar paints.
             ->assertSeeInOrder(["localStorage.getItem('sidebar')", '</head>', '<body'], false);
+    }
+
+    public function test_opening_the_app_returns_to_the_last_workspace(): void
+    {
+        $project = Project::factory()->create(['slug' => 'finance-api', 'name' => 'Finance API']);
+
+        $this->get('/')->assertOk()->assertSee('Dashboard');
+        $this->get('/projects/finance-api')->assertOk();
+
+        $this->get('/')->assertRedirect('/projects/finance-api');
+        $this->get('/home')->assertOk()->assertSee('<title>Dashboard · API Automation</title>', false);
+        $this->get('/settings')->assertOk()
+            ->assertSee('<aside aria-label="Sidebar"', false)
+            ->assertSee('Collections')->assertSee('Environments')->assertSee('History')
+            ->assertSee('Finance API');
+
+        $project->delete();
+        $this->get('/')->assertOk()->assertSee('No projects yet.');
+    }
+
+    public function test_the_projects_page_renders_in_the_layout(): void
+    {
+        $this->get('/projects')->assertOk()->assertSee('<nav aria-label="Main"', false)->assertSee('New project');
     }
 }

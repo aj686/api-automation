@@ -1,9 +1,6 @@
-<div @class(['max-w-4xl' => $project]) @if ($hasActiveRun) wire:poll.2s @endif>
+<div class="w-full" @if ($hasActiveRun) wire:poll.2s @endif>
     @if ($project)
-        <h1 class="text-lg font-semibold">{{ $project->name }}</h1>
-        <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
-
-        <x-project-tabs :project="$project" active="runs" />
+        <h1 class="mb-4 text-lg font-semibold">Run history</h1>
     @else
         <h1 class="mb-4 text-lg font-semibold">Runs</h1>
     @endif

@@ -33,6 +33,8 @@ const step = async (name, fn) => {
     throw e;
   }
 };
+const rail = () => page.getByRole('navigation', { name: 'Main' });
+const sidePanel = () => page.getByRole('complementary', { name: 'Sidebar' });
 const expectText = (text, timeout = 15000) => page.getByText(text, { exact: false }).first().waitFor({ timeout });
 
 try {
@@ -67,7 +69,10 @@ try {
   });
 
   await step('create environment and import the demo environment file', async () => {
-    await page.getByRole('link', { name: 'Environments', exact: true }).click();
+    // Workspace shell (D-040): the rail switches the side panel; its "New" link opens the form.
+    await rail().getByRole('button', { name: 'Environments' }).click();
+    await sidePanel().getByRole('link', { name: 'New' }).click();
+    await page.waitForURL(`**/projects/${SLUG}/environments**`);
     await page.locator('#name').fill('Docker');
     await page.getByRole('button', { name: 'Create environment' }).click();
     await page.waitForURL(`**/projects/${SLUG}/environments/docker`);
@@ -76,21 +81,28 @@ try {
     await page.getByRole('button', { name: 'Import', exact: true }).click();
     await expectText('Imported: 2 added, 0 updated.');
     await expectText('http://nginx');
+    // The new environment is the active one, top right.
+    if ((await page.locator('#active-environment').evaluate((s) => s.options[s.selectedIndex].text)) !== 'Docker') throw new Error('Docker is not the active environment');
     await shot('environment');
   });
 
   await step('import the demo collection', async () => {
-    await page.getByRole('link', { name: 'Collections', exact: true }).click();
+    await rail().getByRole('button', { name: 'Collections' }).click();
+    await sidePanel().getByRole('link', { name: /Import/ }).first().click();
+    await page.waitForURL(`**/projects/${SLUG}/collections**`);
     await page.locator('#collectionFile').setInputFiles('/demo/collections/api-automation-self-check.postman_collection.json');
     await page.waitForTimeout(1500);
     await page.locator('#kind').selectOption('smoke');
     await page.getByRole('button', { name: 'Import collection' }).click();
     await expectText('Imported API Automation self-check (3 requests).');
+    await page.reload();
+    await sidePanel().getByText('API Automation self-check').waitFor();
     await shot('collections');
   });
 
   await step('press Run and get PASS 6/6', async () => {
-    await page.getByRole('link', { name: 'Overview', exact: true }).click();
+    await rail().getByRole('link', { name: 'Overview' }).click();
+    await page.waitForURL(`**/projects/${SLUG}`);
     await page.getByRole('button', { name: 'Run', exact: true }).click();
     await expectText('QUEUED', 10000).catch(() => {}); // may already have moved on
     await expectText('6/6 passed', 90000);
@@ -98,7 +110,7 @@ try {
   });
 
   await step('open the run: request cards with payloads, filters, log (D-037)', async () => {
-    await page.getByRole('link', { name: /API Automation self-check → Docker/ }).first().click();
+    await page.locator('#main').getByRole('link', { name: /API Automation self-check → Docker/ }).first().click();
     await page.waitForURL('**/runs/*');
     await expectText('Results');
     const cards = () => page.locator('article[wire\\:key^="request-"]');
@@ -137,11 +149,17 @@ try {
   });
 
   await step('collection workbench: tree, request tabs, Ctrl+S save, Send shows the response (D-038)', async () => {
-    await page.goto(`${BASE}/projects/${SLUG}/collections/api-automation-self-check`);
-    const tree = page.getByRole('complementary', { name: 'Requests' });
+    // Open the collection from the side panel's tree, then switch requests there (no page load).
+    await rail().getByRole('button', { name: 'Collections' }).click();
+    const tree = sidePanel();
+    await tree.getByRole('link', { name: 'API Automation self-check', exact: true }).click();
+    await page.waitForURL('**/collections/api-automation-self-check**');
     await tree.getByText('API refuses a call without a token').waitFor();
     await tree.getByText('Unknown API path is a clean 404').waitFor();
-    if ((await page.locator('#form-name').inputValue()) !== 'Health page') throw new Error('first request not open');
+    await tree.getByRole('link', { name: /Health page/ }).click();
+    await page.waitForFunction(() => document.querySelector('#form-name')?.value === 'Health page', null, { timeout: 10000 });
+    const openTabs = page.getByRole('tablist', { name: 'Open tabs' });
+    await openTabs.getByRole('tab', { name: /Health page/ }).waitFor({ timeout: 5000 });
 
     for (const tab of ['Authorization', 'Headers', 'Body']) {
       await page.getByRole('tab', { name: new RegExp('^' + tab) }).click();
@@ -164,8 +182,9 @@ try {
   });
 
   await step('runner: drag, untick, move up, stop on error, run in the chosen order (D-038)', async () => {
-    await page.getByRole('complementary', { name: 'Requests' }).getByRole('button', { name: 'Runner' }).click();
+    await page.getByRole('navigation', { name: 'Collection' }).getByRole('button', { name: /Runner/ }).click();
     await expectText('Run 3 of 3 requests');
+    await page.getByRole('tablist', { name: 'Open tabs' }).getByRole('tab', { name: /Runner/ }).waitFor({ timeout: 5000 });
     const rows = page.locator('ol[aria-label="Requests in run order"] > li');
     const order = async () => (await rows.allInnerTexts()).map((t) => (t.match(/(Health page \(edited\)|API refuses a call without a token|Unknown API path is a clean 404)/) || [t])[0]);
 
@@ -210,6 +229,33 @@ try {
     await shot('run-sequence');
   });
 
+  await step('workspace: close a tab, drag the side panel and the request/response divider (D-040)', async () => {
+    await page.goto(`${BASE}/projects/${SLUG}/collections/api-automation-self-check?pane=runner`);
+    const openTabs = page.getByRole('tablist', { name: 'Open tabs' });
+    await openTabs.getByRole('tab', { name: /Runner/ }).waitFor({ timeout: 5000 });
+    const before = await openTabs.getByRole('tab').count();
+    await page.getByRole('button', { name: /^Close Runner/ }).click();
+    await page.waitForFunction((n) => document.querySelectorAll('[aria-label="Open tabs"] [role="tab"]').length === n - 1, before, { timeout: 10000 });
+
+    const width = async () => (await page.locator('#sidebar-panel').boundingBox()).width;
+    const start = await width();
+    const sep = await page.getByRole('separator', { name: 'Resize the side panel' }).boundingBox();
+    await page.mouse.move(sep.x + 3, sep.y + 200); await page.mouse.down();
+    await page.mouse.move(sep.x + 90, sep.y + 200, { steps: 8 }); await page.mouse.up();
+    if ((await width()) < start + 60) throw new Error(`side panel did not widen (${start} → ${await width()})`);
+
+    await page.locator('[aria-label="Open tabs"] [role="tab"]', { hasText: 'Health page' }).first().click();
+    const split = page.getByRole('separator', { name: 'Resize request and response' });
+    await split.waitFor({ timeout: 10000 });
+    const left = async () => (await page.locator('.split-left').boundingBox()).width;
+    const l0 = await left();
+    const s = await split.boundingBox();
+    await page.mouse.move(s.x + s.width / 2, s.y + 40); await page.mouse.down();
+    await page.mouse.move(s.x + 120, s.y + 40, { steps: 8 }); await page.mouse.up();
+    if ((await left()) < l0 + 60) throw new Error(`request pane did not widen (${l0} → ${await left()})`);
+    await shot('workspace');
+  });
+
   await step('capture URL: create, enable, receive a call, credential header kept as [present]', async () => {
     await page.goto(`${BASE}/projects/${SLUG}/captures`);
     await page.locator('#name').fill('Hook');
@@ -232,7 +278,7 @@ try {
     if (res.status !== 200) throw new Error('capture answered ' + res.status);
 
     await expectText('/orders/paid', 15000); // page polls every 5 s
-    await page.locator('details summary').first().click();
+    await page.locator('#main details summary').first().click();
     await expectText('[present]');
     const html = await page.content();
     if (html.includes('YOUR_ACCESS_TOKEN_e2e')) throw new Error('credential value rendered');

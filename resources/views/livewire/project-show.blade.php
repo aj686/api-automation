@@ -1,12 +1,11 @@
-<div class="max-w-4xl">
+<div class="w-full">
     <x-flash />
 
-    <h1 class="text-lg font-semibold">{{ $project->name }}</h1>
+    <h1 class="wrap-anywhere text-lg font-semibold">{{ $project->name }}</h1>
     <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
 
-    <x-project-tabs :project="$project" active="overview" />
-
-    <section aria-labelledby="run-panel" class="mb-8 rounded border border-zinc-200 bg-surface p-4" @if ($hasActiveRun) wire:poll.2s @endif>
+    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <section aria-labelledby="run-panel" class="rounded border border-zinc-200 bg-surface p-4" @if ($hasActiveRun) wire:poll.2s @endif>
         <h2 id="run-panel" class="mb-3 font-semibold">Run tests</h2>
 
         @if ($environments->isEmpty() || $collections->isEmpty())
@@ -87,10 +86,11 @@
         @endif
     </section>
 
-    <section aria-labelledby="edit-project" class="mb-6 rounded border border-zinc-200 bg-surface p-4">
+    <div class="grid gap-6">
+    <section aria-labelledby="edit-project" class="rounded border border-zinc-200 bg-surface p-4">
         <h2 id="edit-project" class="mb-3 font-semibold">Details</h2>
 
-        <form wire:submit="save" class="grid max-w-lg gap-3 text-sm">
+        <form wire:submit="save" class="grid gap-3 text-sm">
             <x-field label="Name" for="name" :error="$errors->first('name')">
                 <input id="name" type="text" wire:model="name" required maxlength="100" autocomplete="off"
                        class="w-full rounded border border-zinc-300 px-2 py-1.5">
@@ -118,7 +118,7 @@
             Deletes its environments, their stored credentials, and its collections. Run history is kept, still showing this project's name.
         </p>
 
-        <form wire:submit="delete" class="grid max-w-lg gap-3 text-sm">
+        <form wire:submit="delete" class="grid gap-3 text-sm">
             <x-field label="Type {{ $project->name }} to confirm" for="confirmName" :error="$errors->first('confirmName')">
                 <input id="confirmName" type="text" wire:model="confirmName" autocomplete="off"
                        class="w-full rounded border border-zinc-300 px-2 py-1.5">
@@ -129,4 +129,6 @@
             </div>
         </form>
     </section>
+    </div>
+    </div>
 </div>

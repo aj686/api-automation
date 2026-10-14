@@ -162,6 +162,6 @@ class CollectionsTest extends TestCase
             ->assertOk()
             ->assertSee('Demo Smoke')
             ->assertSee('href="'.route('projects.collections', $project).'"', false)
-            ->assertSeeInOrder(['aria-current="page"', 'Collections'], false);
+            ->assertSeeInOrder(['<h1', 'Collections</h1>'], false);
     }
 }

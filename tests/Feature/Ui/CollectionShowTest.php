@@ -116,26 +116,6 @@ class CollectionShowTest extends TestCase
         $this->assertSame('Theirs', $this->stored()->item[0]->name);
     }
 
-    public function test_tree_edits_are_written_at_once_and_keep_unsaved_form_edits_marked(): void
-    {
-        $component = $this->workbench()->set('form.name', 'Not saved yet');
-
-        $component->call('addFolder')->assertSet('renameValue', 'New folder')->set('renameValue', 'Orders')->call('saveRename');
-        $component->call('addRequest', 'folder')->assertSet('form.name', 'New request');
-        $this->assertSame(['Login and obtain JWT', 'Projects', 'Orders'], array_column($this->stored()->item, 'name'), 'the unsaved name was not written');
-        $this->assertSame(['GetProjectInfo', 'New request'], array_column($this->stored()->item[1]->item, 'name'));
-
-        $component->call('moveItem', 'login', 1);
-        $this->assertSame(['Projects', 'Login and obtain JWT', 'Orders'], array_column($this->stored()->item, 'name'));
-
-        $component->call('duplicateItem', 'login');
-        $this->assertSame('Login and obtain JWT copy', $this->stored()->item[2]->name);
-
-        $component->call('deleteItem', 'folder');
-        $this->assertSame(['Login and obtain JWT', 'Login and obtain JWT copy', 'Orders'], array_column($this->stored()->item, 'name'));
-        $component->assertSet('selectedId', null)->assertSet('pane', 'overview');
-    }
-
     public function test_send_saves_and_queues_a_single_request_run(): void
     {
         $this->workbench()
@@ -183,7 +163,8 @@ class CollectionShowTest extends TestCase
     {
         $production = Environment::factory()->for($this->project)->create(['name' => 'Prod', 'type' => 'production']);
 
-        $component = $this->workbench()->set('environmentId', $production->id);
+        // Chosen in the top bar, which tells the page.
+        $component = $this->workbench()->dispatch('environment-changed', environment: $production->id);
         $component->call('sendRequest')->assertHasErrors('confirmProduction');
         $component->call('runSequence')->assertHasErrors('confirmProduction');
         $this->assertSame(0, Run::count());
@@ -208,8 +189,9 @@ class CollectionShowTest extends TestCase
 
         $this->get(route('runs.show', $chosen))->assertOk()->assertSee('Run sequence:')->assertSee('GetProjectInfo → Login and obtain JWT · stop on error');
 
-        $this->get('/runs')->assertSee('Chosen run')->assertDontSee('Sent one');
-        $this->get('/runs?sends=1')->assertSee('Sent one');
+        // The list itself (the side panel's History shows sends too).
+        Livewire::test(\App\Livewire\Runs::class)->assertSee('Chosen run')->assertDontSee('Sent one')
+            ->set('showSends', true)->assertSee('Sent one');
         $this->get('/projects/demo')->assertSee('Choose requests and order');
     }
 }

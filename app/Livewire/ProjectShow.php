@@ -8,8 +8,10 @@ use App\Exceptions\RunAlreadyActive;
 use App\Models\Project;
 use App\Models\Run;
 use App\Services\RunService;
+use App\Support\Workspace;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class ProjectShow extends Component
@@ -41,12 +43,24 @@ class ProjectShow extends Component
         $this->project = $project;
         $this->fill($project->only('name', 'slug'));
         $this->description = (string) $project->description;
-        $this->runEnvironmentId = $project->environments()->orderBy('name')->value('id');
+        $this->runEnvironmentId = Workspace::activeEnvironment($project)?->id;
         $this->runCollectionId = $project->collections()->orderBy('name')->value('id');
     }
 
     public function updatedRunEnvironmentId(): void
     {
+        $this->confirmProduction = '';
+        $this->resetValidation('confirmProduction');
+        // One active environment per workspace (D-040): the top bar follows.
+        if (Workspace::setActiveEnvironment($this->project, $this->runEnvironmentId)) {
+            $this->dispatch('environment-chosen', environment: $this->runEnvironmentId)->to(EnvironmentSwitcher::class);
+        }
+    }
+
+    #[On('environment-changed')]
+    public function environmentChanged(?int $environment = null): void
+    {
+        $this->runEnvironmentId = $environment;
         $this->confirmProduction = '';
         $this->resetValidation('confirmProduction');
     }

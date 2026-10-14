@@ -6,7 +6,6 @@ use App\Enums\RunTrigger;
 use App\Exceptions\ImportException;
 use App\Exceptions\RunAlreadyActive;
 use App\Models\Collection;
-use App\Models\Environment;
 use App\Models\Project;
 use App\Models\Run;
 use App\Services\CollectionImporter;
@@ -14,9 +13,11 @@ use App\Services\Postman\CollectionDocument;
 use App\Services\Postman\PostmanUrl;
 use App\Services\RunOptions;
 use App\Services\RunService;
+use App\Support\Workspace;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -43,7 +44,8 @@ class CollectionShow extends Component
     #[Url(except: 'request')]
     public string $pane = 'request';
 
-    #[Locked]
+    /** The open request; ?request=<id> opens it (links from the side panel, D-040). */
+    #[Url(as: 'request', except: null)]
     public ?string $selectedId = null;
 
     /** The open request, as CollectionDocument::requestForm() returns it. @var array<string, mixed> */
@@ -56,15 +58,11 @@ class CollectionShow extends Component
     #[Locked]
     public string $baseSha = '';
 
+    /** The workspace's active environment, chosen in the top bar (D-040). */
+    #[Locked]
     public ?int $environmentId = null;
 
     public string $confirmProduction = '';
-
-    // Tree: inline rename
-    #[Locked]
-    public ?string $renamingId = null;
-
-    public string $renameValue = '';
 
     // Runner
     /** @var list<array{id: string, name: string, method: ?string, folder: ?string, checked: bool}> */
@@ -87,19 +85,23 @@ class CollectionShow extends Component
         $this->collection = $collection;
         $this->baseSha = $collection->sha256;
 
-        $environments = $project->environments()->orderBy('name')->get();
-        $this->environmentId = ($environments->first(fn (Environment $e) => ! $e->isProduction()) ?? $environments->first())?->id;
+        $this->environmentId = Workspace::activeEnvironment($project)?->id;
 
         $document = $this->document();
         $this->resetSequence($document);
-        $first = $document->requests()[0]['id'] ?? null;
         if (! in_array($this->pane, ['request', 'runner', 'overview'], true)) {
             $this->pane = 'request';
         }
-        if ($first !== null) {
-            $this->openRequest($document, $first);
-        } elseif ($this->pane === 'request') {
-            $this->pane = 'overview';
+        $open = $this->selectedId !== null && $document->isRequest($this->selectedId)
+            ? $this->selectedId
+            : ($document->requests()[0]['id'] ?? null);
+        if ($open !== null) {
+            $this->openRequest($document, $open);
+        } else {
+            $this->selectedId = null;
+            if ($this->pane === 'request') {
+                $this->pane = 'overview';
+            }
         }
     }
 
@@ -118,13 +120,42 @@ class CollectionShow extends Component
         if ($document->isRequest($id)) {
             $this->openRequest($document, $id);
             $this->pane = 'request';
+            $this->dispatch('request-opened', id: $id);
         }
     }
 
-    public function updatedEnvironmentId(): void
+    /** The top bar (or the side panel's ✓) picked another environment. */
+    #[On('environment-changed')]
+    public function environmentChanged(?int $environment = null): void
     {
+        $this->environmentId = $environment;
         $this->confirmProduction = '';
         $this->resetValidation('confirmProduction');
+    }
+
+    /**
+     * The side panel edited this collection's tree. Its own write, so the new
+     * file is the base; the open form follows unless it has unsaved edits.
+     */
+    #[On('collection-changed')]
+    public function collectionChanged(int $collection, ?string $renamed = null, ?string $name = null): void
+    {
+        if ($collection !== $this->collection->id) {
+            return;
+        }
+
+        $document = $this->document();
+        $this->baseSha = $this->collection->sha256;
+        $this->resetSequence($document);
+
+        if ($this->selectedId !== null && ! $document->isRequest($this->selectedId)) {
+            $this->reset('selectedId', 'form', 'unsaved', 'sendRunId');
+            $this->pane = 'overview';
+        } elseif ($this->selectedId !== null && ! $this->unsaved) {
+            $this->form = $document->requestForm($this->selectedId);
+        } elseif ($renamed !== null && $renamed === $this->selectedId) {
+            $this->form['name'] = (string) $name;
+        }
     }
 
     /**
@@ -185,6 +216,7 @@ class CollectionShow extends Component
         }, 'Saved '.$this->form['name'].'.', checkBase: true);
         if ($saved) {
             $this->unsaved = false;
+            $this->dispatch('collection-saved')->to(WorkspacePanel::class);
         }
 
         return $saved;
@@ -204,73 +236,6 @@ class CollectionShow extends Component
         if ($run) {
             $this->sendRunId = $run->id;
         }
-    }
-
-    // --- Tree edits: written at once, like Postman ---
-
-    public function addRequest(CollectionImporter $importer, ?string $parentId = null): void
-    {
-        $id = null;
-        if ($this->write($importer, function (CollectionDocument $document) use ($parentId, &$id) {
-            $id = $document->addRequest($parentId, 'New request');
-        }, 'Added a request.')) {
-            $this->openRequest($this->document(), $id);
-            $this->pane = 'request';
-        }
-    }
-
-    public function addFolder(CollectionImporter $importer, ?string $parentId = null): void
-    {
-        $id = null;
-        if ($this->write($importer, function (CollectionDocument $document) use ($parentId, &$id) {
-            $id = $document->addFolder($parentId, 'New folder');
-        }, 'Added a folder.')) {
-            $this->startRename($id);
-        }
-    }
-
-    public function startRename(string $id): void
-    {
-        $row = collect($this->document()->tree())->firstWhere('id', $id);
-        if ($row) {
-            $this->renamingId = $id;
-            $this->renameValue = $row['name'];
-        }
-    }
-
-    public function cancelRename(): void
-    {
-        $this->reset('renamingId', 'renameValue');
-        $this->resetValidation('renameValue');
-    }
-
-    public function saveRename(CollectionImporter $importer): void
-    {
-        $this->validate(['renameValue' => ['required', 'string', 'max:'.self::NAME_MAX]], [], ['renameValue' => 'name']);
-        $id = $this->renamingId;
-        $name = trim($this->renameValue);
-
-        if ($id !== null && $this->write($importer, fn (CollectionDocument $document) => $document->rename($id, $name), 'Renamed to '.$name.'.')) {
-            if ($id === $this->selectedId) {
-                $this->form['name'] = $name;
-            }
-            $this->cancelRename();
-        }
-    }
-
-    public function duplicateItem(CollectionImporter $importer, string $id): void
-    {
-        $this->write($importer, fn (CollectionDocument $document) => $document->duplicate($id), 'Duplicated.');
-    }
-
-    public function deleteItem(CollectionImporter $importer, string $id): void
-    {
-        $this->write($importer, fn (CollectionDocument $document) => $document->delete($id), 'Deleted.');
-    }
-
-    public function moveItem(CollectionImporter $importer, string $id, int $direction): void
-    {
-        $this->write($importer, fn (CollectionDocument $document) => $document->move($id, $direction), null);
     }
 
     // --- Runner: Run sequence for this run only (not saved) ---
@@ -345,7 +310,6 @@ class CollectionShow extends Component
         $this->unsaved = false;
         $this->baseSha = $this->collection->sha256;
         $this->sendRunId = null;
-        $this->cancelRename();
         $this->resetValidation();
     }
 
@@ -416,6 +380,7 @@ class CollectionShow extends Component
 
         $this->confirmProduction = '';
         $this->resetErrorBag(['run', 'confirmProduction', 'sequence']);
+        $this->dispatch('run-started')->to(WorkspacePanel::class);
 
         return $run;
     }
@@ -438,7 +403,19 @@ class CollectionShow extends Component
         $environments = $this->project->environments()->orderBy('name')->get();
         $sendRun = $this->sendRunId ? Run::with('requests.results')->find($this->sendRunId) : null;
 
+        $page = route('projects.collections.show', [$this->project, $this->collection]);
+        $tab = match (true) {
+            $this->pane === 'request' && $this->selectedId !== null => [
+                'key' => 'req:'.$this->collection->id.':'.$this->selectedId, 'kind' => 'request',
+                'label' => (string) ($this->form['name'] ?? ''), 'method' => (string) ($this->form['method'] ?? ''),
+                'url' => $page.'?request='.rawurlencode($this->selectedId), 'request' => $this->selectedId, 'unsaved' => $this->unsaved,
+            ],
+            $this->pane === 'runner' => ['key' => 'runner:'.$this->collection->id, 'kind' => 'runner', 'label' => 'Runner · '.$this->collection->name, 'url' => $page.'?pane=runner', 'pane' => 'runner'],
+            default => ['key' => 'col:'.$this->collection->id, 'kind' => 'collection', 'label' => $this->collection->name, 'url' => $page.'?pane=overview', 'pane' => 'overview'],
+        };
+
         return view('livewire.collection-show', [
+            'tab' => $tab + ['collection' => $this->collection->id],
             'tree' => $document->tree(),
             'summary' => $document->collectionSummary(),
             'environments' => $environments,

@@ -5,7 +5,10 @@
     $at = fn ($time) => $time?->format('Y-m-d H:i:s T') ?? '—';
 @endphp
 
-<div class="max-w-5xl" @if ($run->status->isActive()) wire:poll.2s @endif>
+<div class="w-full" @if ($run->status->isActive()) wire:poll.2s @endif>
+    @if ($run->project)
+        <span hidden x-data wire:key="tab-run-{{ $run->id }}-{{ $run->status->value }}" x-init="$dispatch('tab-open', @js(['key' => 'run:'.$run->id, 'kind' => 'run', 'label' => $run->collection_name.' · '.$run->status->value, 'url' => route('runs.show', $run)]))"></span>
+    @endif
     <p class="mb-2 text-sm">
         <a href="{{ $run->project ? route('projects.runs', $run->project) : route('runs') }}" class="text-accent-700 hover:underline">← {{ $run->project ? $run->project->name.' runs' : 'All runs' }}</a>
     </p>

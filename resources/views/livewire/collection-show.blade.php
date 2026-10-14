@@ -1,6 +1,7 @@
 {{--
-    Collection workbench, Postman-style (decisions.md D-038): tree on the left,
-    the open request's tabs on the right, environment picker top right.
+    Collection workbench, Postman-style (decisions.md D-038, D-040): the open
+    request's tabs, Runner and Overview. The tree lives in the side panel and
+    the environment in the top bar.
     Send and Run go through Postman CLI like every other run.
 --}}
 @php
@@ -19,38 +20,31 @@
     $checkedCount = collect($sequence)->where('checked', true)->count();
 @endphp
 
-<div class="max-w-7xl"
+<div class="w-full"
      x-data
      x-on:keydown.ctrl.s.window.prevent="if ($wire.pane === 'request') { document.activeElement?.blur(); $wire.saveRequest() }"
      x-on:keydown.meta.s.window.prevent="if ($wire.pane === 'request') { document.activeElement?.blur(); $wire.saveRequest() }"
-     x-on:beforeunload.window="if ($wire.unsaved) { $event.preventDefault(); $event.returnValue = ''; }">
+     x-on:beforeunload.window="if ($wire.unsaved) { $event.preventDefault(); $event.returnValue = ''; }"
+     x-on:open-request.window="if ($event.detail.id === $wire.selectedId) { $wire.showPane('request'); return; } if ($wire.unsaved && ! confirm('Discard your unsaved changes to this request?')) return; $wire.selectItem($event.detail.id)"
+     x-init="window.__workbench = { collection: {{ $collection->id }} }; $nextTick(() => $dispatch('request-opened', { id: $wire.selectedId }))"
+     x-on:open-pane.window="$wire.showPane($event.detail.pane)">
+    {{-- Announces the open tab; the key changes whenever the tab does, so morphing re-runs it (D-040). --}}
+    <span hidden wire:key="tab-{{ md5(json_encode($tab)) }}" x-init="$dispatch('tab-open', @js($tab))"></span>
     <x-flash />
 
-    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div class="min-w-0">
-            <p class="wrap-anywhere text-xs text-zinc-500">
-                <a href="{{ route('projects.show', $project) }}" class="hover:underline">{{ $project->name }}</a> /
-                <a href="{{ route('projects.collections', $project) }}" class="hover:underline">Collections</a>
-            </p>
+    <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div class="min-w-0 flex-1">
             <h1 class="wrap-anywhere text-lg font-semibold">{{ $collection->name }}</h1>
             <p class="font-mono text-xs text-zinc-500">{{ $collection->slug }} · {{ Str::plural('request', $requestCount, true) }}</p>
         </div>
-
-        <div class="flex flex-wrap items-end gap-2 text-sm">
-            <div>
-                <label for="environmentId" class="mb-1 block text-xs font-medium text-zinc-600">Environment</label>
-                @if ($environments->isEmpty())
-                    <a href="{{ route('projects.environments', $project) }}" class="text-accent-700 hover:underline">Create an environment →</a>
-                @else
-                    <select id="environmentId" wire:model.live="environmentId" class="max-w-[16rem] rounded border border-zinc-300 bg-surface px-2 py-1.5">
-                        @foreach ($environments as $environment)
-                            <option value="{{ $environment->id }}">{{ $environment->name }}{{ $environment->isProduction() ? ' — PRODUCTION' : '' }}</option>
-                        @endforeach
-                    </select>
-                @endif
-            </div>
+        <nav aria-label="Collection" class="flex flex-wrap items-center gap-1 text-sm">
+            @if ($selectedId !== null)
+                <button type="button" wire:click="showPane('request')" @class(['rounded px-3 py-1.5', 'bg-accent-50 font-medium text-accent-700' => $pane === 'request', 'hover:bg-zinc-100' => $pane !== 'request']) @if ($pane === 'request') aria-current="page" @endif>Request</button>
+            @endif
+            <button type="button" wire:click="showPane('runner')" @class(['rounded px-3 py-1.5', 'bg-accent-50 font-medium text-accent-700' => $pane === 'runner', 'hover:bg-zinc-100' => $pane !== 'runner']) @if ($pane === 'runner') aria-current="page" @endif><span aria-hidden="true">▶</span> Runner</button>
+            <button type="button" wire:click="showPane('overview')" @class(['rounded px-3 py-1.5', 'bg-accent-50 font-medium text-accent-700' => $pane === 'overview', 'hover:bg-zinc-100' => $pane !== 'overview']) @if ($pane === 'overview') aria-current="page" @endif>Overview</button>
             <a href="{{ route('projects.collections.download', [$project, $collection]) }}" class="rounded px-3 py-1.5 text-accent-700 hover:bg-zinc-100" title="The collection file as stored, for importing back into Postman">Download</a>
-        </div>
+        </nav>
     </div>
 
     @if ($selectedEnvironment?->isProduction())
@@ -61,8 +55,6 @@
             </x-field>
         </div>
     @endif
-
-    <x-project-tabs :project="$project" active="collections" />
 
     @error('collection') <p role="alert" class="mb-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">{{ $message }}</p> @enderror
     @error('run') <p role="alert" class="mb-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">{{ $message }}</p> @enderror
@@ -80,84 +72,12 @@
         </div>
     @endif
 
-    <div class="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        {{-- Tree --}}
-        <aside aria-label="Requests" class="min-w-0 rounded lg:sticky lg:top-4 lg:self-start border border-zinc-200 bg-surface p-2 text-sm"
-               x-data="{ closed: {} }">
-            <div class="mb-2 flex flex-wrap gap-1">
-                <button type="button" wire:click="showPane('overview')" @class(['rounded px-2 py-1', 'bg-accent-50 font-medium text-accent-700' => $pane === 'overview', 'hover:bg-zinc-100' => $pane !== 'overview']) @if ($pane === 'overview') aria-current="page" @endif>Overview</button>
-                <button type="button" wire:click="showPane('runner')" @class(['rounded px-2 py-1', 'bg-accent-50 font-medium text-accent-700' => $pane === 'runner', 'hover:bg-zinc-100' => $pane !== 'runner']) @if ($pane === 'runner') aria-current="page" @endif><span aria-hidden="true">▶</span> Runner</button>
-                <span class="flex-1"></span>
-                <button type="button" wire:click="addRequest" class="rounded px-2 py-1 text-accent-700 hover:bg-zinc-100" title="Add a request at the top level">+ Request</button>
-                <button type="button" wire:click="addFolder" class="rounded px-2 py-1 text-accent-700 hover:bg-zinc-100" title="Add a folder at the top level">+ Folder</button>
-            </div>
-
-            @if ($tree === [])
-                <p class="px-2 py-3 text-zinc-600">No requests yet. Add one above.</p>
-            @endif
-
-            @php $ancestors = []; @endphp
-            <ul class="max-h-[40vh] space-y-px overflow-y-auto lg:max-h-[calc(100dvh-6rem)]">
-                @foreach ($tree as $row)
-                    @php
-                        $ancestors = array_slice($ancestors, 0, $row['depth']);
-                        $hiddenIf = $ancestors ? implode(' || ', array_map(fn ($a) => 'closed['.Js::from($a).']', $ancestors)) : 'false';
-                        if ($row['folder']) { $ancestors[$row['depth']] = $row['id']; }
-                        $selected = ! $row['folder'] && $row['id'] === $selectedId;
-                    @endphp
-                    <li wire:key="tree-{{ $row['id'] }}" x-show="!({{ $hiddenIf }})"
-                        class="group flex items-center gap-1 rounded {{ $selected ? 'bg-accent-50' : 'hover:bg-zinc-50' }}"
-                        style="padding-left: {{ min($row['depth'], 5) * 0.75 + 0.25 }}rem">
-                        @if ($renamingId === $row['id'])
-                            <form wire:submit="saveRename" class="flex min-w-0 flex-1 items-center gap-1 py-0.5">
-                                <label for="renameValue" class="sr-only">New name</label>
-                                <input id="renameValue" type="text" wire:model="renameValue" maxlength="250" x-init="$el.focus(); $el.select()" x-on:keydown.escape="$wire.cancelRename()"
-                                       class="min-w-0 flex-1 rounded border border-zinc-300 bg-surface px-1.5 py-0.5">
-                                <button type="submit" class="rounded px-1.5 py-0.5 text-accent-700 hover:bg-zinc-100">OK</button>
-                            </form>
-                        @elseif ($row['folder'])
-                            <button type="button" class="flex min-w-0 flex-1 items-center gap-1 py-1 text-left"
-                                    x-on:click="closed[@js($row['id'])] = !closed[@js($row['id'])]"
-                                    x-bind:aria-expanded="!closed[@js($row['id'])]">
-                                <span aria-hidden="true" class="w-3 text-zinc-500" x-text="closed[@js($row['id'])] ? '▸' : '▾'">▾</span>
-                                <span class="truncate font-medium" title="{{ $row['name'] }}">{{ $row['name'] }}</span>
-                            </button>
-                        @else
-                            <button type="button" class="flex min-w-0 flex-1 items-center gap-2 py-1 pl-4 text-left"
-                                    @if ($selected) aria-current="true" @endif
-                                    x-on:click="if ($wire.unsaved && @js($row['id']) !== $wire.selectedId && ! confirm('Discard your unsaved changes to this request?')) return; $wire.selectItem(@js($row['id']))">
-                                <span class="min-w-12 shrink-0 font-mono text-[0.65rem] font-semibold {{ $methodColour($row['method']) }}">{{ $row['method'] }}</span>
-                                <span class="truncate" title="{{ $row['name'] }}">{{ $row['name'] }}</span>
-                            </button>
-                        @endif
-
-                        @if ($renamingId !== $row['id'])
-                            <details class="relative shrink-0" x-data x-on:click.outside="$el.open = false">
-                                <summary class="cursor-pointer list-none rounded [&::-webkit-details-marker]:hidden px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-100" aria-label="Actions for {{ $row['name'] }}">⋯</summary>
-                                <div class="absolute right-0 z-10 mt-1 grid w-40 rounded border border-zinc-200 bg-surface py-1 text-xs shadow-lg">
-                                    @if ($row['folder'])
-                                        <button type="button" wire:click="addRequest(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Add request</button>
-                                        <button type="button" wire:click="addFolder(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Add folder</button>
-                                    @endif
-                                    <button type="button" wire:click="startRename(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Rename</button>
-                                    <button type="button" wire:click="duplicateItem(@js($row['id']))" class="px-3 py-1.5 text-left hover:bg-zinc-100">Duplicate</button>
-                                    <button type="button" wire:click="moveItem(@js($row['id']), -1)" class="px-3 py-1.5 text-left hover:bg-zinc-100">Move up</button>
-                                    <button type="button" wire:click="moveItem(@js($row['id']), 1)" class="px-3 py-1.5 text-left hover:bg-zinc-100">Move down</button>
-                                    <button type="button" wire:click="deleteItem(@js($row['id']))"
-                                            wire:confirm="Delete {{ $row['folder'] ? 'the folder '.$row['name'].' and everything in it' : $row['name'] }}? This changes the stored collection."
-                                            class="px-3 py-1.5 text-left text-red-700 hover:bg-red-50">Delete</button>
-                                </div>
-                            </details>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        </aside>
-
-        {{-- Pane --}}
-        <section class="min-w-0">
+    {{-- Pane (the tree is in the side panel, D-040) --}}
+    <section class="min-w-0">
             @if ($pane === 'request' && $selectedId !== null)
-                <div class="rounded border border-zinc-200 bg-surface p-4" aria-labelledby="request-heading">
+                {{-- Request | response: side by side from xl with a draggable divider (D-040), stacked below. --}}
+                <div wire:key="pane-request" class="xl:flex xl:items-start" x-data="splitPane('workbench-split', 55)" x-bind:style="'--split: ' + size + '%'">
+                <div class="split-left min-w-0 rounded border border-zinc-200 bg-surface p-4" aria-labelledby="request-heading">
                     <div class="mb-3 flex items-center gap-2">
                         <h2 id="request-heading" class="sr-only">Request</h2>
                         <label for="form-name" class="sr-only">Request name</label>
@@ -169,7 +89,7 @@
                     </div>
                     @error('form.name') <p role="alert" class="-mt-2 mb-2 text-xs font-medium text-red-700">{{ $message }}</p> @enderror
 
-                    <form wire:submit="sendRequest" class="mb-1 flex flex-wrap gap-2 sm:flex-nowrap">
+                    <form wire:submit="sendRequest" class="mb-1 flex flex-wrap gap-2">
                         <label for="form-method" class="sr-only">Method</label>
                         <select id="form-method" wire:model.live="form.method" class="rounded border border-zinc-300 bg-surface px-2 py-1.5 font-mono text-sm font-semibold {{ $methodColour($form['method'] ?? null) }}">
                             @foreach (array_unique([...$methods, $form['method'] ?? 'GET']) as $method)
@@ -178,7 +98,7 @@
                         </select>
                         <label for="form-url" class="sr-only">URL</label>
                         <input id="form-url" type="text" wire:model.live.blur="form.url" placeholder="@{{base_url}}/path" autocomplete="off" spellcheck="false"
-                               class="order-first min-w-0 flex-1 basis-full sm:order-none sm:basis-0 rounded border border-zinc-300 bg-surface px-2 py-1.5 font-mono text-sm">
+                               class="min-w-[min(100%,16rem)] flex-1 rounded border border-zinc-300 bg-surface px-2 py-1.5 font-mono text-sm">
                         <button type="button" wire:click="saveRequest" wire:loading.attr="disabled" wire:target="saveRequest" class="rounded border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 disabled:opacity-60" title="Ctrl+S">Save</button>
                         <button type="submit" class="rounded bg-primary px-4 py-1.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
                                 wire:loading.attr="disabled" wire:target="sendRequest" @disabled($environments->isEmpty())>Send</button>
@@ -318,9 +238,21 @@
                     </div>
                 </div>
 
+                <div role="separator" aria-orientation="vertical" aria-label="Resize request and response" tabindex="0"
+                     x-bind:aria-valuenow="Math.round(size)" aria-valuemin="25" aria-valuemax="75"
+                     x-on:pointerdown="start($event)" x-on:keydown.left.prevent="nudge(-5)" x-on:keydown.right.prevent="nudge(5)" x-on:dblclick="size = 55; nudge(0)"
+                     class="split-handle hidden xl:block" title="Drag to resize · double-click to reset"></div>
+
                 {{-- Send result --}}
+                <div class="mt-4 min-w-0 xl:mt-0 xl:flex-1">
+                @if (! $sendRun)
+                    <div class="hidden rounded border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 xl:block">
+                        <p class="font-medium text-zinc-700">Response</p>
+                        <p class="mt-1">Press Send to see the response here.</p>
+                    </div>
+                @endif
                 @if ($sendRun)
-                    <div class="mt-4" @if ($sendRun->status->isActive()) wire:poll.1s @endif>
+                    <div @if ($sendRun->status->isActive()) wire:poll.1s @endif>
                         <div class="mb-2 flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
                             <h3 class="font-semibold">Response</h3>
                             <x-status-badge :status="$sendRun->status" :no-tests="$sendRun->hasNoTests()" />
@@ -338,8 +270,10 @@
                         @endforeach
                     </div>
                 @endif
+                </div>
+                </div>
             @elseif ($pane === 'runner')
-                <div class="rounded border border-zinc-200 bg-surface p-4 text-sm">
+                <div wire:key="pane-runner" class="rounded border border-zinc-200 bg-surface p-4 text-sm">
                     <h2 class="mb-1 font-semibold">Run sequence</h2>
                     <p class="mb-3 text-zinc-600">
                         Every request is ticked, in collection order. Untick what you don't need and drag (or use ↑ ↓) to change the order.
@@ -396,7 +330,7 @@
                     @endif
                 </div>
             @else
-                <div class="rounded border border-zinc-200 bg-surface p-4 text-sm">
+                <div wire:key="pane-overview" class="rounded border border-zinc-200 bg-surface p-4 text-sm">
                     <h2 class="mb-3 font-semibold">Overview</h2>
                     <dl class="mb-4 grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-1">
                         <dt class="text-zinc-500">File</dt><dd class="wrap-anywhere">{{ $collection->original_filename }} ({{ $collection->schema_version }})</dd>
@@ -432,6 +366,5 @@
                     @endforeach
                 </div>
             @endif
-        </section>
-    </div>
+    </section>
 </div>

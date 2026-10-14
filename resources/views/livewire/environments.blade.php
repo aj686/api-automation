@@ -1,10 +1,7 @@
-<div class="max-w-4xl">
+<div class="w-full">
     <x-flash />
 
-    <h1 class="text-lg font-semibold">{{ $project->name }}</h1>
-    <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
-
-    <x-project-tabs :project="$project" active="environments" />
+    <h1 class="mb-4 text-lg font-semibold">Environments</h1>
 
     @if ($environments->isNotEmpty())
         <table class="mb-8 w-full border-collapse rounded border border-zinc-200 bg-surface text-sm">

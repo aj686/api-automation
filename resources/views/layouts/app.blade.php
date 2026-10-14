@@ -93,34 +93,48 @@
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="flex min-h-screen bg-zinc-50 text-zinc-900 antialiased">
+    <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
         <a href="#main" class="sr-only rounded bg-surface px-3 py-2 focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50">
             Skip to content
         </a>
 
-        <x-project-sidebar />
-        <div class="sidebar-backdrop" aria-hidden="true"></div>
+        @php($workspace = \App\Support\Workspace::current())
 
-        <div class="flex min-w-0 flex-1 flex-col">
-            <header class="flex h-12 shrink-0 items-center gap-3 border-b border-zinc-200 bg-surface px-4">
-                {{-- Below md the sidebar is a drawer; this opens it. --}}
-                <button type="button" aria-controls="project-sidebar" aria-expanded="false"
-                        class="-ml-1.5 rounded p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 md:hidden">
-                    <x-icon name="menu" />
-                    <span class="sr-only">Menu</span>
-                </button>
-                <a href="{{ route('dashboard') }}" class="font-semibold tracking-tight md:hidden">{{ config('app.name') }}</a>
+        {{-- Top bar, Postman-style (D-040): workspace switcher left, active environment right. --}}
+        <header class="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-zinc-200 bg-surface px-3">
+            {{-- Below md the sidebar is a drawer; this opens it. From md up it folds the panel. --}}
+            <button type="button" aria-controls="project-sidebar" aria-expanded="false" data-panel-toggle title="Show or hide the side panel"
+                    class="rounded p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900">
+                <x-icon name="menu" class="md:hidden" />
+                <x-icon name="panel" class="hidden md:block" />
+                <span class="sr-only">Sidebar</span>
+            </button>
+            <a href="{{ route('home') }}" class="hidden font-semibold tracking-tight sm:block">{{ config('app.name') }}</a>
 
-                <div class="ml-auto">
-                    <livewire:runner-status />
-                </div>
-            </header>
+            <x-workspace-switcher :workspace="$workspace" />
 
-            <livewire:runner-status :banner="true" />
+            <div class="ml-auto flex min-w-0 items-center gap-3">
+                @if ($workspace)
+                    <livewire:environment-switcher :project="$workspace" :key="'env-'.$workspace->id" />
+                @endif
+                <livewire:runner-status />
+            </div>
+        </header>
 
-            <main id="main" tabindex="-1" class="min-w-0 flex-1 p-6">
-                {{ $slot }}
-            </main>
+        <livewire:runner-status :banner="true" />
+
+        <div class="flex">
+            <x-project-sidebar />
+            <div class="sidebar-backdrop" aria-hidden="true"></div>
+
+            <div class="min-w-0 flex-1">
+                @if ($workspace)
+                    <x-workspace-tabs :workspace="$workspace" />
+                @endif
+                <main id="main" tabindex="-1" class="min-w-0 p-4 lg:p-6">
+                    {{ $slot }}
+                </main>
+            </div>
         </div>
     </body>
 </html>

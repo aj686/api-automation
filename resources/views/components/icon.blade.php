@@ -34,5 +34,32 @@
         @case('moon')
             <path d="M16 12.5A6.5 6.5 0 0 1 7.5 4a6.5 6.5 0 1 0 8.5 8.5z" />
             @break
+        @case('collection')
+            <rect x="3" y="7.5" width="14" height="9" rx="1.5" /><path d="M5 5h10M7 2.5h6" />
+            @break
+        @case('environment')
+            <circle cx="10" cy="10" r="7" /><path d="M3 10h14M10 3c2 2.2 2.8 4.5 2.8 7s-.8 4.8-2.8 7c-2-2.2-2.8-4.5-2.8-7S8 5.2 10 3z" />
+            @break
+        @case('history')
+            <circle cx="10" cy="10" r="7" /><path d="M10 6v4l2.5 1.5" />
+            @break
+        @case('capture')
+            <path d="M3 11.5h3.5l1.5 2.5h4l1.5-2.5H17" /><path d="M4.5 5.5h11L17 11.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4.5z" />
+            @break
+        @case('overview')
+            <rect x="3" y="3" width="6" height="6" rx="1" /><rect x="11" y="3" width="6" height="6" rx="1" /><rect x="3" y="11" width="6" height="6" rx="1" /><rect x="11" y="11" width="6" height="6" rx="1" />
+            @break
+        @case('search')
+            <circle cx="9" cy="9" r="5" /><path d="m13 13 3.5 3.5" />
+            @break
+        @case('check')
+            <path d="m4.5 10.5 3.5 3.5 7.5-8" />
+            @break
+        @case('chevron-down')
+            <path d="m5.5 8 4.5 4.5L14.5 8" />
+            @break
+        @case('dots')
+            <circle cx="5" cy="10" r=".75" fill="currentColor" /><circle cx="10" cy="10" r=".75" fill="currentColor" /><circle cx="15" cy="10" r=".75" fill="currentColor" />
+            @break
     @endswitch
 </svg>

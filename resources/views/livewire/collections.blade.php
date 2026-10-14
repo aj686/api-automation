@@ -1,10 +1,7 @@
-<div class="max-w-4xl">
+<div class="w-full">
     <x-flash />
 
-    <h1 class="text-lg font-semibold">{{ $project->name }}</h1>
-    <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
-
-    <x-project-tabs :project="$project" active="collections" />
+    <h1 class="mb-4 text-lg font-semibold">Collections</h1>
 
     @if ($warnings)
         <div role="alert" class="mb-6 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">

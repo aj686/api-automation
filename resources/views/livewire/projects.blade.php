@@ -1,4 +1,4 @@
-<div class="max-w-4xl">
+<div class="w-full">
     <x-flash />
 
     <h1 class="mb-4 text-lg font-semibold">Projects</h1>

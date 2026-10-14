@@ -1,4 +1,5 @@
-<div class="max-w-4xl">
+<div class="w-full">
+    <span hidden x-data x-init="$dispatch('tab-open', @js(['key' => 'env:'.$environment->id, 'kind' => 'environment', 'label' => $environment->name, 'url' => route('projects.environments.show', [$project, $environment])]))"></span>
     <x-flash />
 
     <h1 class="flex items-center gap-2 text-lg font-semibold">
@@ -8,8 +9,6 @@
         <a href="{{ route('projects.show', $project) }}" class="text-accent-700 hover:underline">{{ $project->name }}</a>
         / <span class="font-mono">{{ $environment->slug }}</span>
     </p>
-
-    <x-project-tabs :project="$project" active="environments" />
 
     @if ($environment->isProduction())
         <p role="note" class="mb-6 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">

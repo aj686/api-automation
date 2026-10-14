@@ -78,7 +78,7 @@ class RunsTest extends TestCase
             ->assertOk()
             ->assertSee('<title>Runs · HR API · API Automation</title>', false)
             ->assertSee('HR Smoke')->assertDontSee('Finance Smoke');
-        $this->assertMatchesRegularExpression('/aria-current="page"[^>]*>Runs<\/a>/', $this->get('/projects/hr-api/runs')->getContent());
+        $this->get('/projects/hr-api/runs')->assertSeeInOrder(['<h1', 'Run history</h1>'], false);
 
         $this->get('/projects/missing/runs')->assertNotFound();
     }
@@ -199,6 +199,6 @@ class RunsTest extends TestCase
             ->assertSee($link, false)
             ->assertSee('href="'.route('projects.runs', $run->project).'"', false)
             ->assertDontSee('phase 11');
-        $this->get('/')->assertSee($link, false);
+        $this->get('/home')->assertSee($link, false);
     }
 }

@@ -14,7 +14,9 @@ use App\Livewire\Settings;
 use App\Http\Controllers\CollectionDownloadController;
 use Illuminate\Support\Facades\Route;
 
+// Opening the app (/) returns to the last workspace (D-040); /home is always the dashboard.
 Route::livewire('/', Dashboard::class)->name('dashboard');
+Route::livewire('/home', Dashboard::class)->name('home');
 Route::livewire('/projects', Projects::class)->name('projects');
 Route::livewire('/projects/{project:slug}', ProjectShow::class)->name('projects.show');
 Route::livewire('/projects/{project:slug}/environments', Environments::class)->name('projects.environments');

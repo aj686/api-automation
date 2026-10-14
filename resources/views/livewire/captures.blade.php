@@ -1,10 +1,7 @@
-<div class="max-w-4xl" @if ($viewing?->enabled) wire:poll.5s @endif>
+<div class="w-full" @if ($viewing?->enabled) wire:poll.5s @endif>
     <x-flash />
 
-    <h1 class="text-lg font-semibold">{{ $project->name }}</h1>
-    <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
-
-    <x-project-tabs :project="$project" active="captures" />
+    <h1 class="mb-4 text-lg font-semibold">Capture URLs</h1>
 
     <p class="mb-4 text-sm text-zinc-600">
         For testing calls <em>your</em> API makes to others (webhooks, payment gateways). Point your API's outgoing URL
