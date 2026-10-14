@@ -250,6 +250,7 @@ class EnvironmentShow extends Component
         $this->environment->delete();
 
         session()->flash('status', "Deleted environment {$name} and its variables. Run history was kept.");
+        session()->flash('tab_gone', ['keys' => ['env:'.$this->environment->id]]);
         $this->redirectRoute('projects.environments', $this->project);
     }
 

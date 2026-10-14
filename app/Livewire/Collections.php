@@ -148,6 +148,7 @@ class Collections extends Component
         $collection->delete();
 
         session()->now('status', 'Deleted collection '.$collection->name.'. Run history was kept.');
+        $this->dispatch('tab-gone', prefixes: ['req:'.$collection->id.':', 'col:'.$collection->id, 'runner:'.$collection->id]);
     }
 
     private function collection(?int $id): Collection

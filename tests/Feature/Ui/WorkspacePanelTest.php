@@ -153,4 +153,18 @@ class WorkspacePanelTest extends TestCase
 
         Livewire::test(CollectionShow::class, ['project' => $this->project, 'collection' => $this->collection])->assertSet('environmentId', $staging->id);
     }
+
+    public function test_deleted_things_close_their_tabs(): void
+    {
+        $this->panel()->call('deleteItem', $this->collection->id, 'folder')
+            ->assertDispatched('tab-gone', keys: ['req:'.$this->collection->id.':info']);
+
+        Livewire::withQueryParams(['request' => 'info'])
+            ->test(CollectionShow::class, ['project' => $this->project, 'collection' => $this->collection])
+            ->assertDispatched('tab-gone', keys: ['req:'.$this->collection->id.':info']);
+
+        Livewire::test(\App\Livewire\Collections::class, ['project' => $this->project])
+            ->call('delete', $this->collection->id)
+            ->assertDispatched('tab-gone', prefixes: ['req:'.$this->collection->id.':', 'col:'.$this->collection->id, 'runner:'.$this->collection->id]);
+    }
 }

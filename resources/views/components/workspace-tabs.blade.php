@@ -7,7 +7,11 @@
 
 <div x-data="workspaceTabs({{ $workspace->id }}, @js(route('projects.show', $workspace)))"
      x-on:tab-open.window="open($event.detail)"
+     x-on:tab-gone.window="forget($event.detail)"
      class="sticky top-12 z-20 flex h-10 items-stretch border-b border-zinc-200 bg-surface text-sm" x-show="tabs.length" x-cloak>
+    @if (session('tab_gone'))
+        <span hidden x-init="$nextTick(() => $dispatch('tab-gone', @js(session('tab_gone'))))"></span>
+    @endif
     <button type="button" x-on:click="scroll(-1)" class="shrink-0 px-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" aria-label="Scroll tabs left">‹</button>
     <div x-ref="strip" role="tablist" aria-label="Open tabs" class="tab-strip flex min-w-0 flex-1 overflow-x-auto">
         <template x-for="tab in tabs" :key="tab.key">

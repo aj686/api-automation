@@ -201,9 +201,7 @@ try {
 
     // Drag by the handle (SortableJS via wire:sort), at human speed: faster moves
     // fall inside Sortable's 150 ms animation and only the first swap counts.
-    // Under Playwright the FIRST drag after page load starts but never reorders
-    // (seen with native and fallback drag, D-038); whether a real mouse hits
-    // this is UNVERIFIED, so the first drag below is not asserted.
+    // The first drag after load must work too (it did not before D-040).
     const drag = async (fromIdx, toIdx) => {
       const h = await rows.nth(fromIdx).locator('[wire\\:sort\\:handle]').boundingBox();
       const t = await rows.nth(toIdx).boundingBox();
@@ -215,10 +213,6 @@ try {
       await page.waitForTimeout(1000);
     };
     await drag(2, 0);
-    if ((await order()).join('|') !== 'Unknown API path is a clean 404|Health page (edited)|API refuses a call without a token') {
-      console.log('NOTE  first drag after load did not reorder (known under synthetic input, D-038); dragging again');
-      await drag(2, 0);
-    }
     let now = await order();
     if (now.join('|') !== 'Unknown API path is a clean 404|Health page (edited)|API refuses a call without a token') throw new Error('drag gave ' + now.join(' | '));
 

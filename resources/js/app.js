@@ -162,6 +162,11 @@ document.addEventListener('alpine:init', () => {
             if (next) this.go(next)
             else window.location.href = home
         },
+        // `tab-gone` ({keys?, prefixes?}): the thing behind these tabs was deleted.
+        forget({ keys = [], prefixes = [] }) {
+            this.tabs = this.tabs.filter((t) => ! keys.includes(t.key) && ! prefixes.some((p) => t.key.startsWith(p)))
+            this.save()
+        },
         closeOthers() {
             this.tabs = this.tabs.filter((t) => t.key === this.active)
             this.save()

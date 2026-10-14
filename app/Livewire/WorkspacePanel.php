@@ -122,7 +122,16 @@ class WorkspacePanel extends Component
 
     public function deleteItem(CollectionImporter $importer, int $collection, string $id): void
     {
-        $this->write($importer, $collection, fn (CollectionDocument $document) => $document->delete($id), 'Deleted.');
+        $gone = [];
+        $this->write($importer, $collection, function (CollectionDocument $document) use ($id, &$gone) {
+            $before = array_column($document->requests(), 'id');
+            $document->delete($id);
+            $gone = array_values(array_diff($before, array_column($document->requests(), 'id')));
+        }, 'Deleted.');
+
+        if ($gone !== []) {
+            $this->dispatch('tab-gone', keys: array_map(fn ($request) => 'req:'.$collection.':'.$request, $gone));
+        }
     }
 
     public function moveItem(CollectionImporter $importer, int $collection, string $id, int $direction): void

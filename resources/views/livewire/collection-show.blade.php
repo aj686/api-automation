@@ -114,7 +114,7 @@
                     @endphp
                     <div x-data="{ tab: 'params',
                                    move(step) { const k = @js(array_keys($tabs)); this.tab = k[(k.indexOf(this.tab) + step + k.length) % k.length]; this.$nextTick(() => this.$root.querySelector('[data-tab=' + this.tab + ']').focus()); } }">
-                        <div role="tablist" aria-label="Request parts" class="mb-3 flex gap-1 overflow-x-auto border-b border-zinc-200 text-sm"
+                        <div role="tablist" aria-label="Request parts" class="tab-strip mb-3 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-zinc-200 text-sm"
                              x-on:keydown.right.prevent="move(1)" x-on:keydown.left.prevent="move(-1)">
                             @foreach ($tabs as $key => $label)
                                 <button type="button" role="tab" id="tab-{{ $key }}" data-tab="{{ $key }}" aria-controls="panel-{{ $key }}"
@@ -122,7 +122,7 @@
                                         x-bind:aria-selected="tab === '{{ $key }}'"
                                         x-bind:tabindex="tab === '{{ $key }}' ? 0 : -1"
                                         x-bind:class="tab === '{{ $key }}' ? 'border-accent-600 font-medium text-accent-700' : 'border-transparent text-zinc-600 hover:text-zinc-900'"
-                                        class="-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2">{{ $label }}</button>
+                                        class="shrink-0 whitespace-nowrap border-b-2 px-3 py-2">{{ $label }}</button>
                             @endforeach
                         </div>
 

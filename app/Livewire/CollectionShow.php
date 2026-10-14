@@ -92,6 +92,10 @@ class CollectionShow extends Component
         if (! in_array($this->pane, ['request', 'runner', 'overview'], true)) {
             $this->pane = 'request';
         }
+        if ($this->selectedId !== null && ! $document->isRequest($this->selectedId)) {
+            // A link or tab to a request that was deleted since.
+            $this->dispatch('tab-gone', keys: ['req:'.$collection->id.':'.$this->selectedId]);
+        }
         $open = $this->selectedId !== null && $document->isRequest($this->selectedId)
             ? $this->selectedId
             : ($document->requests()[0]['id'] ?? null);
