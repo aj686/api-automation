@@ -95,8 +95,12 @@
 
     @if ($noTests)
         <p class="border-t border-zinc-100 px-4 py-2 text-xs {{ $httpError ? 'text-amber-900' : 'text-zinc-600' }}">
-            No tests: this request's Post-response script has no <code>pm.test(…)</code>, so nothing checked the response{{ $httpError ? ' and the HTTP '.$request->response_code.' did not fail it' : '' }}.
-            Add one, e.g. <code>pm.test("status is 200", () => pm.response.to.have.status(200));</code>
+            @if ($httpError)
+                The server answered {{ $request->response_code }} {{ $request->response_status }}, but this request has no test, so it is not marked as failed.
+            @else
+                This request has no test, so nothing checked its response.
+            @endif
+            To check it, add to Scripts → Post-response: <code>pm.test("status is 200", () => pm.response.to.have.status(200));</code>
         </p>
     @endif
 
