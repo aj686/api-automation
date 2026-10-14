@@ -1,0 +1,1 @@
+(function () { var s = encodeURIComponent(JSON.stringify(pm.environment.toObject())), h = ""; for (var i = 0; i < s.length; i++) { h += ("0" + s.charCodeAt(i).toString(16)).slice(-2); } console.log("AAVARSBEGIN" + h + "AAVARSEND"); })();

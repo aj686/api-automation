@@ -185,7 +185,7 @@
                     </form>
                     @error('form.method') <p role="alert" class="text-xs font-medium text-red-700">{{ $message }}</p> @enderror
                     @error('form.url') <p role="alert" class="text-xs font-medium text-red-700">{{ $message }}</p> @enderror
-                    <p class="mb-3 text-xs text-zinc-500">Send saves first, then runs this one request with Postman CLI against the selected environment.</p>
+                    <p class="mb-3 text-xs text-zinc-500">Send saves first, then runs this one request with Postman CLI against the selected environment. Values its scripts set (pm.environment.set) are saved to that environment.</p>
 
                     @php
                         $tabs = [
@@ -311,8 +311,8 @@
                                 <textarea id="script-test" wire:model.live.blur="form.test" rows="14" spellcheck="false" class="{{ $mono }} resize-y leading-relaxed" placeholder="pm.test('status is 200', () => pm.response.to.have.status(200));"></textarea>
                             </div>
                             <p class="text-xs text-zinc-500 lg:col-span-2">
-                                Postman CLI runs these scripts (pm.*). Values a script sets with pm.environment.set() last for that run only — they are not written back to the environment here.
-                                To use a token from Login, run both in the <button type="button" wire:click="showPane('runner')" class="text-accent-700 hover:underline">Runner</button>, Login first.
+                                Postman CLI runs these scripts (pm.*). Values set with <code>pm.environment.set()</code> are saved to the selected environment after Send (and after a Runner run with "Keep variable values"),
+                                so Send Login once and the next requests can use <code>@{{token}}</code>. <code>pm.collectionVariables.set()</code> and <code>pm.globals.set()</code> are not kept — use <code>pm.environment.set()</code>.
                             </p>
                         </div>
                     </div>
@@ -329,6 +329,7 @@
                             @endif
                             <a href="{{ route('runs.show', $sendRun) }}" class="ml-auto text-accent-700 hover:underline">Open run →</a>
                         </div>
+                        @include('livewire.partials.kept-variables', ['run' => $sendRun])
                         @if ($sendRun->error_message)
                             <p role="alert" class="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">{{ $sendRun->error_message }}</p>
                         @endif
@@ -374,6 +375,10 @@
                         </ol>
 
                         <div class="sticky bottom-0 -mx-4 -mb-4 border-t border-zinc-200 bg-surface px-4 py-3">
+                        <label class="mb-2 flex items-start gap-2">
+                            <input type="checkbox" wire:model="keepVariables" class="mt-1">
+                            <span><span class="font-medium">Keep variable values</span><br><span class="text-xs text-zinc-600">Saves what scripts set with pm.environment.set() — e.g. a login token — to {{ $selectedEnvironment?->name ?? 'the environment' }}, so later Sends can use it.</span></span>
+                        </label>
                         <label class="mb-3 flex items-start gap-2">
                             <input type="checkbox" wire:model="bail" class="mt-1">
                             <span><span class="font-medium">Stop run if an error occurs</span><br><span class="text-xs text-zinc-600">Stops after the first request whose test fails or that cannot be sent.</span></span>

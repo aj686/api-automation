@@ -28,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'status', 'trigger', 'options', 'cancel_requested_at', 'pid', 'exit_code', 'cli_version',
     'timeout_seconds', 'started_at', 'finished_at', 'duration_ms',
     'total_requests', 'total_assertions', 'passed_assertions', 'failed_assertions',
-    'error_code', 'error_message', 'log',
+    'error_code', 'error_message', 'log', 'kept_variables',
 ])]
 class Run extends Model
 {
@@ -46,6 +46,7 @@ class Run extends Model
             'status' => RunStatus::class,
             'trigger' => RunTrigger::class,
             'options' => 'array',
+            'kept_variables' => 'array',
             'cancel_requested_at' => 'datetime',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
@@ -64,7 +65,7 @@ class Run extends Model
     public function sequenceSummary(): ?string
     {
         $options = $this->runOptions();
-        if ($options->isDefault()) {
+        if (! $options->changesSequence()) {
             return null;
         }
 

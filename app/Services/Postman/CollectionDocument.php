@@ -206,6 +206,22 @@ class CollectionDocument
         });
     }
 
+    /**
+     * Adds a separate `test` script to every request, after its own scripts.
+     * Only on a run's temporary copy (VariableCapture), never on the stored file.
+     */
+    public function appendTestScriptToRequests(string $source): void
+    {
+        $this->walk($this->data->item, function (\stdClass $item) use ($source) {
+            if (isset($item->item) && is_array($item->item)) {
+                return;
+            }
+            $events = is_array($item->event ?? null) ? $item->event : [];
+            $events[] = (object) ['listen' => 'test', 'script' => (object) ['type' => 'text/javascript', 'exec' => [$source]]];
+            $item->event = $events;
+        });
+    }
+
     // --- Request form ---
 
     /**

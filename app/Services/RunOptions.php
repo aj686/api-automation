@@ -13,10 +13,12 @@ final class RunOptions
 {
     /**
      * @param  list<array{id: string, name: string}>  $items  empty = every request, in collection order
+     * @param  bool  $keepVariables  save what scripts set with pm.environment.set() to the environment (D-039)
      */
     public function __construct(
         public readonly array $items = [],
         public readonly bool $bail = false,
+        public readonly bool $keepVariables = false,
     ) {}
 
     /**
@@ -31,7 +33,7 @@ final class RunOptions
             }
         }
 
-        return new self($items, (bool) ($stored['bail'] ?? false));
+        return new self($items, (bool) ($stored['bail'] ?? false), (bool) ($stored['keep'] ?? false));
     }
 
     /**
@@ -39,16 +41,22 @@ final class RunOptions
      *
      * @param  list<string>  $allRequestIds  collection order
      */
-    public static function forSelection(array $items, array $allRequestIds, bool $bail): self
+    public static function forSelection(array $items, array $allRequestIds, bool $bail, bool $keepVariables = false): self
     {
         $ids = array_column($items, 'id');
 
-        return new self($ids === $allRequestIds ? [] : array_values($items), $bail);
+        return new self($ids === $allRequestIds ? [] : array_values($items), $bail, $keepVariables);
     }
 
     public function isDefault(): bool
     {
-        return $this->items === [] && ! $this->bail;
+        return $this->items === [] && ! $this->bail && ! $this->keepVariables;
+    }
+
+    /** Whether the run sent something other than the whole collection, or bailed. */
+    public function changesSequence(): bool
+    {
+        return $this->items !== [] || $this->bail;
     }
 
     /**
@@ -60,10 +68,10 @@ final class RunOptions
     }
 
     /**
-     * @return array{items: list<array{id: string, name: string}>, bail: bool}|null
+     * @return array{items: list<array{id: string, name: string}>, bail: bool, keep: bool}|null
      */
     public function toArray(): ?array
     {
-        return $this->isDefault() ? null : ['items' => $this->items, 'bail' => $this->bail];
+        return $this->isDefault() ? null : ['items' => $this->items, 'bail' => $this->bail, 'keep' => $this->keepVariables];
     }
 }

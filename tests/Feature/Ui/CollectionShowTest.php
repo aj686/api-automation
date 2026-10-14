@@ -146,6 +146,7 @@ class CollectionShowTest extends TestCase
         $run = Run::sole();
         $this->assertSame(RunTrigger::Send, $run->trigger);
         $this->assertSame(['login'], $run->runOptions()->itemIds());
+        $this->assertTrue($run->runOptions()->keepVariables, 'Send keeps what scripts set');
         $this->assertSame('Login', $this->stored()->item[0]->name, 'saved before sending');
     }
 
@@ -155,9 +156,13 @@ class CollectionShowTest extends TestCase
         $this->assertSame(['login', 'info'], array_column($component->get('sequence'), 'id'));
         $this->assertSame([true, true], array_column($component->get('sequence'), 'checked'));
 
-        // Everything, in order: a plain full run.
-        $component->call('runSequence')->assertRedirect();
-        $this->assertNull(Run::sole()->options);
+        // Everything, in order: the whole collection, keeping variables (the default).
+        $component->assertSet('keepVariables', true)->call('runSequence')->assertRedirect();
+        $this->assertSame([], Run::sole()->runOptions()->items);
+        $this->assertTrue(Run::sole()->runOptions()->keepVariables);
+        Run::query()->update(['status' => RunStatus::Pass]);
+        $this->workbench()->set('keepVariables', false)->call('runSequence');
+        $this->assertNull(Run::latest('id')->first()->options, 'nothing changed: a plain full run');
         Run::query()->update(['status' => RunStatus::Pass]);
 
         $component = $this->workbench()

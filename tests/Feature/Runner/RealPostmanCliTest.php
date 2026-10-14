@@ -118,4 +118,50 @@ class RealPostmanCliTest extends TestCase
         $this->assertSame(RunStatus::Fail, $run->status, 'bail still reports the failure');
         $this->assertSame(['B'], $run->requests()->orderBy('position')->pluck('item_name')->all(), 'bail stopped after B');
     }
+
+    public function test_a_real_send_keeps_the_login_token_for_the_next_send(): void
+    {
+        if ((new ExecutableFinder)->find('postman') === null) {
+            $this->markTestSkipped('Postman CLI is not installed here; run this in the api-automation-worker container.');
+        }
+
+        Storage::fake(CollectionImporter::DISK);
+        config(['automation.postman_cli_path' => 'postman', 'automation.runs_directory' => storage_path('framework/testing/real-runs')]);
+
+        $environment = Environment::factory()->create();
+        $environment->variables()->createMany([
+            ['key' => 'base_url', 'value' => 'http://nginx'],
+            ['key' => 'host', 'value' => 'api-automation.local'],
+        ]);
+        $get = ['method' => 'GET', 'header' => [['key' => 'Host', 'value' => '{{host}}']], 'url' => '{{base_url}}/up'];
+        $collection = app(CollectionImporter::class)->store($environment->project, json_encode([
+            'info' => ['name' => 'Real Keep', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
+            'item' => [
+                ['id' => 'login', 'name' => 'Login', 'request' => $get, 'event' => [['listen' => 'test', 'script' => ['exec' => ['pm.environment.set("token", "YOUR_ACCESS_TOKEN_real");']]]]],
+                ['id' => 'info', 'name' => 'GetProjectInfo', 'request' => $get, 'event' => [['listen' => 'test', 'script' => ['exec' => ['pm.test("token from Login is here", () => pm.expect(pm.environment.get("token")).to.eql("YOUR_ACCESS_TOKEN_real"));']]]]],
+            ],
+        ]), 'real.json');
+
+        $send = function (string $id, string $name) use ($environment, $collection): Run {
+            $run = Run::factory()->create([
+                'project_id' => $environment->project_id, 'environment_id' => $environment->id, 'collection_id' => $collection->id,
+                'trigger' => 'send', 'options' => ['items' => [['id' => $id, 'name' => $name]], 'bail' => false, 'keep' => true],
+            ]);
+            (new ExecuteRun($run->id))->handle(app(PostmanCli::class));
+
+            return $run->fresh();
+        };
+
+        $before = $send('info', 'GetProjectInfo');
+        $this->assertSame(RunStatus::Fail, $before->status, 'no token before Login');
+
+        $login = $send('login', 'Login');
+        $this->assertEquals(['saved' => ['token'], 'skipped' => []], $login->kept_variables);
+        $this->assertSame('YOUR_ACCESS_TOKEN_real', $environment->variables()->where('key', 'token')->value('value'));
+
+        $after = $send('info', 'GetProjectInfo');
+        $this->assertSame(RunStatus::Pass, $after->status, (string) $after->error_message);
+        $this->assertStringNotContainsString('YOUR_ACCESS_TOKEN_real', (string) $after->log.(string) $login->log);
+        $this->assertStringNotContainsString('AAVARS', (string) $login->log);
+    }
 }

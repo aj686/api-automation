@@ -14,6 +14,8 @@
     $testsPassed = $tests->where('passed', true)->count();
     $passed = $request->passed();
     $noTests = $passed && $testsTotal === 0;
+    // Without tests nothing fails the request, so an HTTP error would pass silently.
+    $httpError = $request->response_code !== null && $request->response_code >= 400;
     $open = ! $passed;
     $bytes = fn (?int $n) => match (true) {
         $n === null => null,
@@ -64,8 +66,10 @@
             aria-expanded="true" aria-controls="{{ $id }}-content"
             x-bind:aria-expanded="! folded" x-on:click="folded = ! folded">
         <span aria-hidden="true" class="inline-block w-3 text-zinc-500 transition-transform duration-150" x-bind:class="folded ? '-rotate-90' : ''">▾</span>
-        @if ($noTests)
-            <span class="text-sm font-semibold text-zinc-700"><span aria-hidden="true">○</span> No tests</span>
+        @if ($noTests && $httpError)
+            <span class="text-sm font-semibold text-amber-900" title="This request has no pm.test(), so nothing failed it — but the server answered {{ $request->response_code }}."><span aria-hidden="true">⚠</span> No tests · HTTP {{ $request->response_code }}</span>
+        @elseif ($noTests)
+            <span class="text-sm font-semibold text-zinc-700" title="This request has no pm.test() in its Post-response script, so nothing checked the response."><span aria-hidden="true">○</span> No tests</span>
         @elseif ($passed)
             <span class="text-sm font-semibold text-green-800"><span aria-hidden="true">✓</span> Passed</span>
         @elseif ($errored)
@@ -88,6 +92,13 @@
     </h3>
 
     <div id="{{ $id }}-content" x-show="! folded">
+
+    @if ($noTests)
+        <p class="border-t border-zinc-100 px-4 py-2 text-xs {{ $httpError ? 'text-amber-900' : 'text-zinc-600' }}">
+            No tests: this request's Post-response script has no <code>pm.test(…)</code>, so nothing checked the response{{ $httpError ? ' and the HTTP '.$request->response_code.' did not fail it' : '' }}.
+            Add one, e.g. <code>pm.test("status is 200", () => pm.response.to.have.status(200));</code>
+        </p>
+    @endif
 
     @if ($testsTotal || $errored)
         @php($longPassingList = ! $open && $testsTotal > 5)

@@ -260,6 +260,32 @@ class ExecuteRunTest extends TestCase
         $this->assertNull($run->log, 'the CLI never ran');
     }
 
+    public function test_keep_variable_values_saves_what_scripts_set_and_keeps_values_out_of_the_log(): void
+    {
+        $run = $this->queuedRun('keepvars', ['base_url' => ['http://nginx', false], 'host' => ['api-automation.local', false], 'api_key' => ['YOUR_API_KEY', true], 'second' => ['old', false]], ['items' => [], 'bail' => false, 'keep' => true]);
+        $run = $this->execute($run);
+
+        $variables = $run->environment->variables()->get()->keyBy('key');
+        $this->assertSame('YOUR_ACCESS_TOKEN_'.str_repeat('x', 1200).'|"q" end', $variables['token']->value);
+        $this->assertTrue($variables['token']->is_secret, 'a new key that looks like a credential is secret');
+        $this->assertSame('2', $variables['second']->value, 'an existing value is updated');
+        $this->assertFalse($variables['second']->is_secret);
+        $this->assertSame('http://nginx', $variables['base_url']->value);
+        $this->assertFalse($variables->has('run_id'), "the app's own run_id is not saved");
+        $this->assertEquals(['saved' => ['token', 'second'], 'skipped' => []], $run->kept_variables);
+        $this->assertStringNotContainsString('AAVARS', (string) $run->log);
+        $this->assertStringNotContainsString('YOUR_ACCESS_TOKEN', (string) $run->log);
+    }
+
+    public function test_without_keep_nothing_is_saved(): void
+    {
+        $run = $this->execute($this->queuedRun('keepvars', ['second' => ['old', false]]));
+
+        $this->assertSame(['second' => 'old'], $run->environment->variables()->pluck('value', 'key')->all());
+        $this->assertNull($run->kept_variables);
+        $this->assertStringNotContainsString('AAVARS', (string) $run->log, 'stripped anyway');
+    }
+
     public function test_a_run_that_is_not_queued_is_left_alone(): void
     {
         $run = $this->queuedRun('pass');

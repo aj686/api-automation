@@ -4,6 +4,7 @@ namespace App\Services\Postman;
 
 use App\Enums\RunStatus;
 use App\Exceptions\ImportException;
+use App\Models\Environment;
 use App\Models\EnvironmentVariable;
 use App\Models\Run;
 use App\Models\WorkerHeartbeat;
@@ -33,6 +34,7 @@ class PostmanCli
     public function __construct(
         private readonly RunCommandBuilder $commands,
         private readonly ReportParser $parser,
+        private readonly VariableCapture $capture,
     ) {}
 
     /**
@@ -75,7 +77,14 @@ class PostmanCli
         $reportPath = $directory.'/report.json';
 
         try {
-            $this->writeEnvironment($environmentPath, $environment->name, $variables, $run);
+            $written = $this->writeEnvironment($environmentPath, $environment->name, $variables, $run);
+
+            if ($options->keepVariables) {
+                // A copy for this run only; the stored file is never changed (D-039).
+                $runCollectionPath = $directory.'/collection.json';
+                file_put_contents($runCollectionPath, $this->capture->inject((string) file_get_contents($collectionPath)), LOCK_EX);
+                $collectionPath = $runCollectionPath;
+            }
 
             $command = $this->commands->build($collectionPath, $environmentPath, $directory, $reportPath, config('automation.request_timeout_ms'), $options->itemIds(), $options->bail);
             $process = Process::path($directory)->forever()->start($command);
@@ -85,7 +94,13 @@ class PostmanCli
             $run->update(['pid' => $pid, 'cli_version' => $this->cliVersion()]);
 
             $outcome = $this->supervise($process, $pid, $run, $cancelRequested);
-            $log = $this->log($process->output().$process->errorOutput(), $redactor);
+            $output = $process->output().$process->errorOutput();
+            $kept = null;
+            if ($outcome === null && $options->keepVariables && ($captured = $this->capture->extract($output)) !== null) {
+                [$kept, $newSecrets] = $this->keepVariables($environment, $captured, $written);
+                $redactor = new Redactor([...$variables->where('is_secret', true)->pluck('value'), ...$newSecrets]);
+            }
+            $log = $this->log($this->capture->strip($output), $redactor);
 
             if ($outcome !== null) {
                 return ['status' => $outcome['status'], 'attributes' => [...$outcome['attributes'], 'log' => $log], 'results' => [], 'requests' => []];
@@ -119,6 +134,7 @@ class PostmanCli
                     'passed_assertions' => $parsed->passedAssertions,
                     'failed_assertions' => $parsed->failedAssertions,
                     'log' => $log,
+                    'kept_variables' => $kept,
                 ],
                 'results' => $parsed->results,
                 'requests' => $parsed->requests,
@@ -301,7 +317,10 @@ class PostmanCli
      *
      * @param  Collection<int, EnvironmentVariable>  $variables
      */
-    private function writeEnvironment(string $path, string $name, $variables, Run $run): void
+    /**
+     * @return array<string, string>  key => value as written, for "Keep variable values"
+     */
+    private function writeEnvironment(string $path, string $name, $variables, Run $run): array
     {
         $values = $variables->map(fn ($variable) => [
             'key' => $variable->key,
@@ -334,6 +353,55 @@ class PostmanCli
             umask($umask);
         }
         @chmod($path, 0600);
+
+        return array_column($values, 'value', 'key');
+    }
+
+    /**
+     * Saves what the run's scripts changed or added to the environment
+     * (Postman's "Keep variable values", D-039). Keys removed by a script are
+     * left alone; run_id and run_started_at are the app's own unless the
+     * environment defines them. Values are encrypted like every other.
+     *
+     * @param  array<string, string>  $captured  the environment after the run
+     * @param  array<string, string>  $written  what the run started with
+     * @return array{0: array{saved: list<string>, skipped: list<string>}|null, 1: list<string>}  names; new secret values for the redactor
+     */
+    private function keepVariables(Environment $environment, array $captured, array $written): array
+    {
+        $existing = $environment->variables()->get()->keyBy('key');
+        $saved = $skipped = $newSecrets = [];
+
+        foreach ($captured as $key => $value) {
+            if (array_key_exists($key, $written) && $written[$key] === $value) {
+                continue;
+            }
+            if (in_array($key, ['run_id', 'run_started_at'], true) && ! $existing->has($key)) {
+                continue;
+            }
+            if (! preg_match(EnvironmentVariable::KEY_PATTERN, $key) || mb_strlen($value) > EnvironmentVariable::MAX_VALUE_LENGTH) {
+                $skipped[] = Str::limit($key, 100, '');
+
+                continue;
+            }
+
+            $variable = $existing->get($key);
+            if ($variable) {
+                $variable->update(['value' => $value]);
+            } else {
+                $variable = $environment->variables()->create([
+                    'key' => $key,
+                    'value' => $value,
+                    'is_secret' => (bool) preg_match(EnvironmentVariable::SECRET_KEY_PATTERN, $key),
+                ]);
+            }
+            if ($variable->is_secret) {
+                $newSecrets[] = $value;
+            }
+            $saved[] = $key;
+        }
+
+        return [$saved || $skipped ? ['saved' => $saved, 'skipped' => $skipped] : null, $newSecrets];
     }
 
     private function log(string $output, Redactor $redactor): ?string

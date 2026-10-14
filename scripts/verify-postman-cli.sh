@@ -132,6 +132,25 @@ run_case select_folder --timeout-request 30000 -i F
 run_case bail --timeout-request 30000 --bail
 run_case bail_failure --timeout-request 30000 --bail failure
 
+# Keep variable values (D-039): the app's capture script, appended as a second
+# test event to every request, prints the environment as hex between markers.
+CAPTURE_JS="$(dirname "$0")/../resources/postman/capture-variables.js"
+CAPTURE_JS="$CAPTURE_JS" OUT_JSON="$WORK/keepvars.json" node -e '
+const fs = require("fs");
+const capture = fs.readFileSync(process.env.CAPTURE_JS, "utf8").trim();
+const H = [{ key: "Host", value: "{{host}}" }];
+const longToken = "YOUR_ACCESS_TOKEN_" + "x".repeat(1200) + "|\"q\" end";
+const item = (id, exec) => ({ id, name: id, request: { method: "GET", header: H, url: "{{base_url}}/up" },
+  event: [{ listen: "test", script: { exec } }, { listen: "test", script: { exec: [capture] } }] });
+fs.writeFileSync(process.env.OUT_JSON, JSON.stringify({
+  info: { name: "Verify keepvars", schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  item: [
+    item("Login", ["pm.environment.set(\"token\", " + JSON.stringify(longToken) + ");"]),
+    item("Throws", ["pm.environment.set(\"second\", \"2\"); undefinedFn();"]),
+  ],
+}));'
+run_case keepvars --timeout-request 30000
+
 # Resolved secrets in raw CLI output (the app redacts before storing anything).
 leaks=$(grep -l YOUR_API_KEY "$OUT"/*.report.json "$OUT"/*.stdout.txt 2>/dev/null | xargs -r -n1 basename | tr '\n' ' ')
 echo "placeholder secret present in raw output of: ${leaks:-nothing}" | tee -a "$OUT/exit-codes.txt"

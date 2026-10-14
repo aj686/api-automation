@@ -60,7 +60,7 @@ class RunServiceTest extends TestCase
         $service = app(RunService::class);
 
         $run = $service->start($environment, $collection, RunTrigger::Send, new RunOptions([['id' => 'id-b', 'name' => 'B']], bail: true));
-        $this->assertEquals(['items' => [['id' => 'id-b', 'name' => 'B']], 'bail' => true], $run->fresh()->options, 'MySQL JSON reorders keys');
+        $this->assertEquals(['items' => [['id' => 'id-b', 'name' => 'B']], 'bail' => true, 'keep' => false], $run->fresh()->options, 'MySQL JSON reorders keys');
         $this->assertSame(RunTrigger::Send, $run->fresh()->trigger);
         $run->update(['status' => RunStatus::Pass]);
 

@@ -33,6 +33,7 @@ replay() { # replay <fixture> <exit-code>
 
 case "$mode" in
     pass|notests|payload) replay "$mode" 0 ;;
+    keepvars) replay keepvars 1 ;;
     fail|unreachable|scripterror|requesttimeout) replay "$mode" 1 ;;
     noreport)
         echo "Error: collection could not be loaded" >&2

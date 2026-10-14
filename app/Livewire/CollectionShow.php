@@ -72,6 +72,9 @@ class CollectionShow extends Component
 
     public bool $bail = false;
 
+    /** Save what scripts set (e.g. a login token) to the environment; on by default, like Send (D-039). */
+    public bool $keepVariables = true;
+
     #[Locked]
     public ?string $sendRunId = null;
 
@@ -196,7 +199,8 @@ class CollectionShow extends Component
             return;
         }
 
-        $run = $this->start($runs, RunTrigger::Send, new RunOptions([['id' => $this->selectedId, 'name' => Str::limit((string) $this->form['name'], self::NAME_MAX, '')]]));
+        // Send always keeps what scripts set, like Postman: Login once, then Send the rest.
+        $run = $this->start($runs, RunTrigger::Send, new RunOptions([['id' => $this->selectedId, 'name' => Str::limit((string) $this->form['name'], self::NAME_MAX, '')]], keepVariables: true));
         if ($run) {
             $this->sendRunId = $run->id;
         }
@@ -318,7 +322,7 @@ class CollectionShow extends Component
         }
 
         $all = array_column($this->document()->requests(), 'id');
-        $options = RunOptions::forSelection(array_map(fn ($row) => ['id' => $row['id'], 'name' => Str::limit($row['name'], self::NAME_MAX, '')], $chosen), $all, $this->bail);
+        $options = RunOptions::forSelection(array_map(fn ($row) => ['id' => $row['id'], 'name' => Str::limit($row['name'], self::NAME_MAX, '')], $chosen), $all, $this->bail, $this->keepVariables);
 
         if ($run = $this->start($runs, RunTrigger::Manual, $options)) {
             $this->redirectRoute('runs.show', $run);
