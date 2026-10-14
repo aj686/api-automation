@@ -277,6 +277,16 @@ class ExecuteRunTest extends TestCase
         $this->assertStringNotContainsString('YOUR_ACCESS_TOKEN', (string) $run->log);
     }
 
+    public function test_a_kept_credential_like_key_becomes_secret_even_if_it_was_plain(): void
+    {
+        $run = $this->queuedRun('keepvars', ['base_url' => ['http://nginx', false], 'host' => ['api-automation.local', false], 'api_key' => ['YOUR_API_KEY', true], 'token' => ['', false], 'second' => ['old', false]], ['items' => [], 'bail' => false, 'keep' => true]);
+        $run = $this->execute($run);
+
+        $variables = $run->environment->variables()->get()->keyBy('key');
+        $this->assertTrue($variables['token']->is_secret, 'was an empty plain variable from an export');
+        $this->assertFalse($variables['second']->is_secret, 'ordinary names stay plain');
+    }
+
     public function test_without_keep_nothing_is_saved(): void
     {
         $run = $this->execute($this->queuedRun('keepvars', ['second' => ['old', false]]));

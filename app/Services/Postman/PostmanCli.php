@@ -387,7 +387,9 @@ class PostmanCli
 
             $variable = $existing->get($key);
             if ($variable) {
-                $variable->update(['value' => $value]);
+                // A credential-like key becomes secret, as on import (D-017): an
+                // empty, plain "token" from an export must not hold a real token in clear.
+                $variable->update(['value' => $value, 'is_secret' => $variable->is_secret || preg_match(EnvironmentVariable::SECRET_KEY_PATTERN, $key)]);
             } else {
                 $variable = $environment->variables()->create([
                     'key' => $key,
