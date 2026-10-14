@@ -1,4 +1,6 @@
-<div class="w-full" @if ($viewing?->enabled) wire:poll.5s @endif>
+<div class="w-full">
+    {{-- A poller that only exists while needed, keyed so each wait starts a fresh poll: adding and removing wire:poll on an element that stays was seen to stop polling (D-040). --}}
+    @if ($viewing?->enabled) <span hidden wire:poll.5s wire:key="poll-{{ $viewing->id }}"></span> @endif
     <x-flash />
 
     <h1 class="mb-4 text-lg font-semibold">Capture URLs</h1>
@@ -114,11 +116,7 @@
                     <input id="slug" type="text" wire:model="slug" maxlength="100" autocomplete="off" class="w-full rounded border border-zinc-300 px-2 py-1.5 font-mono">
                 </x-field>
                 <x-field label="Environment" for="environmentId" :error="$errors->first('environmentId')" hint="Its secret values are redacted from what is captured. Production is not offered.">
-                    <select id="environmentId" wire:model="environmentId" class="w-full rounded border border-zinc-300 px-2 py-1.5">
-                        @foreach ($environments as $environment)
-                            <option value="{{ $environment->id }}">{{ $environment->name }} ({{ $environment->type->value }})</option>
-                        @endforeach
-                    </select>
+                    <x-dropdown id="environmentId" wire:model="environmentId" :options="$environments->mapWithKeys(fn ($e) => [$e->id => ['label' => $e->name, 'hint' => $e->type->value]])->all()" />
                 </x-field>
                 <div class="grid grid-cols-2 gap-3">
                     <x-field label="Reply with status" for="responseStatus" :error="$errors->first('responseStatus')">

@@ -4,12 +4,6 @@
     @else
         @php($active = $environments->firstWhere('id', $environmentId))
         <label for="active-environment" class="sr-only">Active environment</label>
-        <span aria-hidden="true" @class(['size-2 shrink-0 rounded-full', 'bg-red-600' => $active?->isProduction(), 'bg-green-600' => $active && ! $active->isProduction()])></span>
-        <select id="active-environment" wire:model.live="environmentId" title="Active environment: Send and Run use it"
-                @class(['max-w-[14rem] truncate rounded border bg-surface py-1 pl-2 pr-7 text-sm', 'border-red-300 text-red-900' => $active?->isProduction(), 'border-zinc-300' => ! $active?->isProduction()])>
-            @foreach ($environments as $environment)
-                <option value="{{ $environment->id }}">{{ $environment->name }}{{ $environment->isProduction() ? ' — PRODUCTION' : '' }}</option>
-            @endforeach
-        </select>
+        <x-dropdown id="active-environment" wire:model.live="environmentId" :options="$environments->mapWithKeys(fn ($e) => [$e->id => ['label' => $e->name, 'danger' => $e->isProduction()]])->all()" align="right" class="w-[15rem] max-w-[40vw]" button-class="py-1" title="Active environment: Send and Run use it" />
     @endif
 </div>

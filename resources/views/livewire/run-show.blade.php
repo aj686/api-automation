@@ -5,7 +5,9 @@
     $at = fn ($time) => $time?->format('Y-m-d H:i:s T') ?? '—';
 @endphp
 
-<div class="w-full" @if ($run->status->isActive()) wire:poll.2s @endif>
+<div class="w-full">
+    {{-- A poller that only exists while needed, keyed so each wait starts a fresh poll: adding and removing wire:poll on an element that stays was seen to stop polling (D-040). --}}
+    @if ($run->status->isActive()) <span hidden wire:poll.2s wire:key="poll-{{ $run->id }}"></span> @endif
     @if ($run->project)
         <span hidden x-data wire:key="tab-run-{{ $run->id }}-{{ $run->status->value }}" x-init="$dispatch('tab-open', @js(['key' => 'run:'.$run->id, 'kind' => 'run', 'label' => $run->collection_name.' · '.$run->status->value, 'url' => route('runs.show', $run)]))"></span>
     @endif

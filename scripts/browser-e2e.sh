@@ -12,6 +12,7 @@
 # Another version: PW_VERSION=1.62.1 sh scripts/browser-e2e.sh
 # Works in a throwaway project "Zz Browser E2E" and removes it again.
 # Screenshots: storage/framework/testing/browser/ (gitignored).
+# Dark theme: E2E_THEME=dark sh scripts/browser-e2e.sh
 
 set -u
 APP="$(cd "$(dirname "$0")/.." && pwd)"
@@ -43,7 +44,7 @@ docker run --rm --init --ipc=host \
     --network docker-webstack_docker_webstack \
     --add-host api-automation.local:host-gateway \
     -v "$APP/tests/browser:/browser:ro" -v "$APP/demo:/demo:ro" -v "$OUT:/out" \
-    -e PW_VERSION="$PW_VERSION" \
+    -e PW_VERSION="$PW_VERSION" -e E2E_THEME="${E2E_THEME:-}" \
     -e E2E_HOT_ORIGIN="$( [ "${E2E_ALLOW_HOT:-0}" = "1" ] && cat "$APP/public/hot" 2>/dev/null )" \
     --user root "$IMAGE" sh /browser/run-in-container.sh
 status=$?

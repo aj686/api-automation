@@ -1,4 +1,6 @@
-<div class="w-full" @if ($hasActiveRun) wire:poll.2s @endif>
+<div class="w-full">
+    {{-- A poller that only exists while needed, keyed so each wait starts a fresh poll: adding and removing wire:poll on an element that stays was seen to stop polling (D-040). --}}
+    @if ($hasActiveRun) <span hidden wire:poll.2s wire:key="poll-{{ $runs->getCollection()->filter(fn ($r) => $r->status->isActive())->pluck('id')->implode('-') }}"></span> @endif
     @if ($project)
         <h1 class="mb-4 text-lg font-semibold">Run history</h1>
     @else
@@ -28,12 +30,7 @@
         @unless ($project)
             <div>
                 <label for="projectFilter" class="sr-only">Project</label>
-                <select id="projectFilter" wire:model.live="projectFilter" class="rounded border border-zinc-300 bg-surface px-2 py-1.5">
-                    <option value="">All projects</option>
-                    @foreach ($projects as $option)
-                        <option value="{{ $option->slug }}">{{ $option->name }}</option>
-                    @endforeach
-                </select>
+                <x-dropdown id="projectFilter" wire:model.live="projectFilter" :options="['' => 'All projects'] + $projects->mapWithKeys(fn ($p) => [$p->slug => $p->name])->all()" class="w-56" />
             </div>
         @endunless
     </div>

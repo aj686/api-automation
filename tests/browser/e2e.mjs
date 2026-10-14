@@ -9,6 +9,8 @@ const SLUG = 'zz-browser-e2e';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+// E2E_THEME=dark (or light) runs the same steps in that theme, for screenshots of both.
+if (process.env.E2E_THEME) await page.addInitScript((theme) => { try { localStorage.setItem('theme', theme) } catch (e) {} }, process.env.E2E_THEME);
 const problems = [];
 // With E2E_ALLOW_HOT=1 a running `npm run dev` is tolerated: only errors for its own
 // origin (unreachable from this container) are ignored; anything else still fails.
@@ -82,7 +84,7 @@ try {
     await expectText('Imported: 2 added, 0 updated.');
     await expectText('http://nginx');
     // The new environment is the active one, top right.
-    if ((await page.locator('#active-environment').evaluate((s) => s.options[s.selectedIndex].text)) !== 'Docker') throw new Error('Docker is not the active environment');
+    if (! (await page.locator('#active-environment').innerText()).includes('Docker')) throw new Error('Docker is not the active environment');
     await shot('environment');
   });
 
@@ -92,7 +94,16 @@ try {
     await page.waitForURL(`**/projects/${SLUG}/collections**`);
     await page.locator('#collectionFile').setInputFiles('/demo/collections/api-automation-self-check.postman_collection.json');
     await page.waitForTimeout(1500);
-    await page.locator('#kind').selectOption('smoke');
+    // <x-dropdown> (D-040): pick by clicking the option.
+    await page.locator('#kind').click();
+    await page.getByRole('listbox').getByRole('option', { name: 'smoke' }).click();
+    if (! (await page.locator('#kind').innerText()).includes('smoke')) throw new Error('kind dropdown did not take "smoke"');
+    // Keyboard: ArrowDown opens it, Escape closes it and returns focus.
+    await page.locator('#kind').focus();
+    await page.keyboard.press('ArrowDown');
+    await page.getByRole('listbox').waitFor();
+    await page.keyboard.press('Escape');
+    await page.getByRole('listbox').waitFor({ state: 'hidden' });
     await page.getByRole('button', { name: 'Import collection' }).click();
     await expectText('Imported API Automation self-check (3 requests).');
     await page.reload();
@@ -132,7 +143,7 @@ try {
     // Accordion: the header folds the card; "Expand all" opens every card again.
     await refused.getByRole('button', { name: /API refuses a call without a token/ }).click();
     await page.waitForFunction(() => [...document.querySelectorAll('article[wire\\:key^="request-"]')].some((a) => a.querySelector('[aria-expanded="false"]')), null, { timeout: 5000 });
-    if (await refused.getByText('Request headers').isVisible()) throw new Error('folded card still shows its payload');
+    await refused.getByText('Request headers').waitFor({ state: 'hidden', timeout: 5000 }); // folded card hides its payload
     await page.getByRole('button', { name: 'Collapse all' }).click();
     await page.waitForFunction(() => document.querySelectorAll('article[wire\\:key^="request-"] [aria-expanded="true"]').length === 0, null, { timeout: 5000 });
     await page.getByRole('button', { name: 'Expand all' }).click();

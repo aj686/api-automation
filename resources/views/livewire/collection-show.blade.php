@@ -91,11 +91,7 @@
 
                     <form wire:submit="sendRequest" class="mb-1 flex flex-wrap gap-2">
                         <label for="form-method" class="sr-only">Method</label>
-                        <select id="form-method" wire:model.live="form.method" class="rounded border border-zinc-300 bg-surface px-2 py-1.5 font-mono text-sm font-semibold {{ $methodColour($form['method'] ?? null) }}">
-                            @foreach (array_unique([...$methods, $form['method'] ?? 'GET']) as $method)
-                                <option value="{{ $method }}">{{ $method }}</option>
-                            @endforeach
-                        </select>
+                        <x-dropdown id="form-method" wire:model.live="form.method" class="w-32 shrink-0" button-class="font-mono font-semibold" :options="collect(array_unique([...$methods, $form['method'] ?? 'GET']))->mapWithKeys(fn ($m) => [$m => ['label' => $m, 'class' => 'font-mono font-semibold '.$methodColour($m)]])->all()" />
                         <label for="form-url" class="sr-only">URL</label>
                         <input id="form-url" type="text" wire:model.live.blur="form.url" placeholder="@{{base_url}}/path" autocomplete="off" spellcheck="false"
                                class="min-w-[min(100%,16rem)] flex-1 rounded border border-zinc-300 bg-surface px-2 py-1.5 font-mono text-sm">
@@ -143,13 +139,7 @@
                                 </p>
                             @else
                                 <x-field label="Type" for="auth-type">
-                                    <select id="auth-type" wire:model.live="form.auth.type" class="{{ $input }}">
-                                        <option value="inherit">Inherit from parent</option>
-                                        <option value="noauth">No auth</option>
-                                        <option value="bearer">Bearer token</option>
-                                        <option value="basic">Basic auth</option>
-                                        <option value="apikey">API key</option>
-                                    </select>
+                                    <x-dropdown id="auth-type" wire:model.live="form.auth.type" :options="['inherit' => 'Inherit from parent', 'noauth' => 'No auth', 'bearer' => 'Bearer token', 'basic' => 'Basic auth', 'apikey' => 'API key']" />
                                 </x-field>
                                 @if ($form['auth']['type'] === 'bearer')
                                     <x-field label="Token" for="auth-token" :hint="'Use a variable such as '.$variable('token').'; a script can set it, e.g. after Login.'">
@@ -170,10 +160,7 @@
                                         <input id="auth-value" type="password" wire:model.live.blur="form.auth.value" autocomplete="new-password" class="{{ $mono }}">
                                     </x-field>
                                     <x-field label="Add to" for="auth-in">
-                                        <select id="auth-in" wire:model.live="form.auth.in" class="{{ $input }}">
-                                            <option value="header">Header</option>
-                                            <option value="query">Query params</option>
-                                        </select>
+                                        <x-dropdown id="auth-in" wire:model.live="form.auth.in" :options="['header' => 'Header', 'query' => 'Query params']" />
                                     </x-field>
                                 @elseif ($form['auth']['type'] === 'inherit')
                                     <p class="text-zinc-600">Uses the folder's or the collection's auth{{ $summary['auth'] ? ' (collection: '.$summary['auth'].')' : '' }}.</p>
@@ -202,11 +189,7 @@
                                     @endforeach
                                     @if ($form['body']['mode'] === 'raw')
                                         <label for="body-language" class="sr-only">Language</label>
-                                        <select id="body-language" wire:model.live="form.body.language" class="rounded border border-zinc-300 bg-surface px-2 py-1 text-xs">
-                                            @foreach ($languages as $language)
-                                                <option value="{{ $language }}">{{ strtoupper($language) }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-dropdown id="body-language" wire:model.live="form.body.language" class="w-28" button-class="py-1 text-xs" :options="collect($languages)->mapWithKeys(fn ($l) => [$l => strtoupper($l)])->all()" />
                                     @endif
                                 </fieldset>
                                 @if ($form['body']['mode'] === 'raw')
@@ -252,7 +235,8 @@
                     </div>
                 @endif
                 @if ($sendRun)
-                    <div @if ($sendRun->status->isActive()) wire:poll.1s @endif>
+                    <div>
+                        @if ($sendRun->status->isActive()) <span hidden wire:poll.1s wire:key="poll-{{ $sendRun->id }}"></span> @endif
                         <div class="mb-2 flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
                             <h3 class="font-semibold">Response</h3>
                             <x-status-badge :status="$sendRun->status" :no-tests="$sendRun->hasNoTests()" />

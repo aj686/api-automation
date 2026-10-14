@@ -142,11 +142,7 @@
                 <input id="slug" type="text" wire:model="slug" required maxlength="100" autocomplete="off" class="w-full rounded border border-zinc-300 px-2 py-1.5 font-mono">
             </x-field>
             <x-field label="Type" for="type" :error="$errors->first('type')">
-                <select id="type" wire:model.live="type" class="w-full rounded border border-zinc-300 px-2 py-1.5">
-                    @foreach ($types as $option)
-                        <option value="{{ $option->value }}">{{ $option->value }}</option>
-                    @endforeach
-                </select>
+                <x-dropdown id="type" wire:model.live="type" :options="collect($types)->mapWithKeys(fn ($t) => [$t->value => ['label' => $t->value, 'danger' => $t->isProduction()]])->all()" />
             </x-field>
             <x-field label="Base URL (for display)" for="base_url_hint" :error="$errors->first('base_url_hint')">
                 <input id="base_url_hint" type="url" wire:model="base_url_hint" maxlength="255" autocomplete="off" class="w-full rounded border border-zinc-300 px-2 py-1.5 font-mono">

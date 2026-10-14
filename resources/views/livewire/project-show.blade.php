@@ -5,7 +5,9 @@
     <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
 
     <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-    <section aria-labelledby="run-panel" class="rounded border border-zinc-200 bg-surface p-4" @if ($hasActiveRun) wire:poll.2s @endif>
+    <section aria-labelledby="run-panel" class="rounded border border-zinc-200 bg-surface p-4">
+        {{-- A poller that only exists while needed, keyed so each wait starts a fresh poll: adding and removing wire:poll on an element that stays was seen to stop polling (D-040). --}}
+        @if ($hasActiveRun) <span hidden wire:poll.2s wire:key="poll-{{ $recentRuns->filter(fn ($r) => $r->status->isActive())->pluck('id')->implode('-') }}"></span> @endif
         <h2 id="run-panel" class="mb-3 font-semibold">Run tests</h2>
 
         @if ($environments->isEmpty() || $collections->isEmpty())
@@ -15,22 +17,14 @@
                 <a href="{{ route('projects.collections', $project) }}" class="text-accent-700 hover:underline">collection</a>.
             </p>
         @else
-            <form wire:submit="startRun" class="grid gap-3 text-sm sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <form wire:submit="startRun" class="grid gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
                 <div>
                     <label for="runEnvironmentId" class="mb-1 block font-medium">Environment</label>
-                    <select id="runEnvironmentId" wire:model.live="runEnvironmentId" class="w-full rounded border border-zinc-300 px-2 py-1.5">
-                        @foreach ($environments as $environment)
-                            <option value="{{ $environment->id }}">{{ $environment->name }}{{ $environment->isProduction() ? ' — PRODUCTION' : '' }}</option>
-                        @endforeach
-                    </select>
+                    <x-dropdown id="runEnvironmentId" wire:model.live="runEnvironmentId" :options="$environments->mapWithKeys(fn ($e) => [$e->id => ['label' => $e->name, 'danger' => $e->isProduction()]])->all()" />
                 </div>
                 <div>
                     <label for="runCollectionId" class="mb-1 block font-medium">Collection</label>
-                    <select id="runCollectionId" wire:model="runCollectionId" class="w-full rounded border border-zinc-300 px-2 py-1.5">
-                        @foreach ($collections as $collection)
-                            <option value="{{ $collection->id }}">{{ $collection->name }} ({{ $collection->kind->value }})</option>
-                        @endforeach
-                    </select>
+                    <x-dropdown id="runCollectionId" wire:model="runCollectionId" :options="$collections->mapWithKeys(fn ($c) => [$c->id => ['label' => $c->name, 'hint' => $c->kind->value]])->all()" />
                 </div>
                 <button type="submit" class="rounded bg-primary px-4 py-1.5 font-medium text-white hover:bg-primary-hover" wire:loading.attr="disabled" wire:target="startRun">
                     <span aria-hidden="true">▶</span> Run

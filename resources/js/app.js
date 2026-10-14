@@ -77,6 +77,47 @@ document.addEventListener('alpine:init', () => {
         },
     }))
 
+    // <x-dropdown>: a styled single select (resources/views/components/dropdown.blade.php).
+    window.Alpine.data('dropdown', (items, placeholder) => ({
+        items,
+        placeholder,
+        value: null,
+        open: false,
+        active: -1,
+        get current() {
+            return this.items.find((item) => this.same(item.value)) ?? null
+        },
+        same(value) {
+            return this.value !== null && this.value !== undefined && String(value) === String(this.value)
+        },
+        toggle() {
+            this.open ? this.close(true) : this.show(0)
+        },
+        show(step) {
+            const selected = this.items.findIndex((item) => this.same(item.value))
+            this.active = selected >= 0 ? selected : step < 0 ? this.items.length - 1 : 0
+            this.open = true
+            this.$nextTick(() => {
+                this.$refs.list.focus()
+                this.$refs.list.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' })
+            })
+        },
+        move(step) {
+            this.active = (this.active + step + this.items.length) % this.items.length
+            this.$nextTick(() => this.$refs.list.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' }))
+        },
+        choose(item) {
+            if (! item) return
+            this.value = item.value
+            this.close(true)
+        },
+        close(focus = false) {
+            if (! this.open) return
+            this.open = false
+            if (focus) this.$refs.button.focus()
+        },
+    }))
+
     // Open tabs, Postman-style: pages announce themselves with a `tab-open`
     // window event ({key, kind, label, method?, url, collection?, request?,
     // pane?, unsaved?}); the bar remembers them per workspace.

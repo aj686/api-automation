@@ -85,11 +85,7 @@
             </x-field>
 
             <x-field label="Kind" for="kind" :error="$errors->first('kind')" hint="A label for filtering. Every kind runs the same way.">
-                <select id="kind" wire:model="kind" class="w-full rounded border border-zinc-300 px-2 py-1.5">
-                    @foreach ($kinds as $option)
-                        <option value="{{ $option->value }}">{{ $option->value }}</option>
-                    @endforeach
-                </select>
+                <x-dropdown id="kind" wire:model="kind" :options="collect($kinds)->mapWithKeys(fn ($k) => [$k->value => $k->value])->all()" />
             </x-field>
 
             <div>
