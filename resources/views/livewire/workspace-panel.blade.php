@@ -29,7 +29,7 @@
      x-on:request-opened.window="selected = $event.detail.id"
      x-on:panel-status="status = $event.detail.message; clearTimeout(window.__panelStatus); window.__panelStatus = setTimeout(() => status = '', 3000)">
 
-    <p x-show="status" x-cloak x-text="status" role="status" class="mx-2 mb-2 wrap-anywhere rounded border border-green-300 bg-green-50 px-2 py-1 text-xs text-green-900"></p>
+    <p role="status" class="mx-2 wrap-anywhere text-xs text-green-900" x-bind:class="status && 'mb-2 rounded border border-green-300 bg-green-50 px-2 py-1'" x-text="status"></p>
     @error('panel') <p role="alert" class="mx-2 mb-2 wrap-anywhere rounded border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-900">{{ $message }}</p> @enderror
 
     {{-- Collections --}}
@@ -44,7 +44,7 @@
             <div class="relative mx-3 mb-2">
                 <x-icon name="search" class="pointer-events-none absolute left-2 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
                 <label for="panel-search" class="sr-only">Search requests</label>
-                <input id="panel-search" type="search" x-model="q" placeholder="Search requests" autocomplete="off"
+                <input id="panel-search" type="search" x-model.debounce.150ms="q" placeholder="Search requests" autocomplete="off"
                        class="w-full rounded border border-zinc-300 bg-surface py-1 pl-7 pr-2 text-sm">
             </div>
         @endif
@@ -66,7 +66,7 @@
                         $searchText = $collection->name.' '.collect($tree)->pluck('name')->implode(' ');
                     @endphp
                     <li wire:key="panel-collection-{{ $collection->id }}" x-show="shown(@js($searchText))">
-                        <div @class(['group flex items-center gap-1 rounded pr-1', 'bg-zinc-100' => $current, 'hover:bg-zinc-50' => ! $current])>
+                        <div @class(['group flex items-center gap-1 rounded pr-1', 'bg-zinc-200' => $current, 'hover:bg-zinc-100' => ! $current])>
                             <button type="button" class="rounded p-1 text-zinc-500 hover:text-zinc-900"
                                     x-on:click="flip('c{{ $collection->id }}', @js($current))"
                                     x-bind:aria-expanded="isOpen('c{{ $collection->id }}', @js($current)) || q !== ''"
@@ -78,7 +78,7 @@
                             <a href="{{ $page }}?pane=runner" class="rounded p-1 text-zinc-500 opacity-60 hover:bg-zinc-200 hover:text-accent-700 group-hover:opacity-100" title="Run {{ $collection->name }}" aria-label="Run {{ $collection->name }}">
                                 <x-icon name="play" class="size-4" />
                             </a>
-                            <details class="relative" x-data x-on:click.outside="$el.open = false">
+                            <details class="relative" x-data x-on:click.outside="$el.open = false" x-on:keydown.escape="$el.open = false; $el.querySelector('summary').focus()">
                                 <summary class="cursor-pointer list-none rounded p-1 text-zinc-500 hover:bg-zinc-200 [&::-webkit-details-marker]:hidden" aria-label="Actions for {{ $collection->name }}"><x-icon name="dots" class="size-4" /></summary>
                                 <div class="absolute right-0 z-20 mt-1 grid w-44 rounded border border-zinc-200 bg-surface py-1 text-xs shadow-lg">
                                     <button type="button" wire:click="addRequest({{ $collection->id }})" class="{{ $menuItem }}">Add request</button>
@@ -105,15 +105,16 @@
                                 <li wire:key="panel-{{ $collection->id }}-{{ $row['id'] }}"
                                     x-show="q !== '' ? shown(@js($row['name'])) : ! ({{ $hiddenIf }})"
                                     class="group flex items-center gap-1 rounded pr-1"
-                                    x-bind:class="selected === @js($row['id']) && @js($current) ? 'bg-accent-50 text-accent-800' : 'hover:bg-zinc-50'"
+                                    x-bind:class="selected === @js($row['id']) && @js($current) ? 'bg-accent-50 text-accent-800' : 'hover:bg-zinc-100'"
                                     style="{{ $indent }}">
                                     @if ($renamingId === $row['id'] && $renamingCollectionId === $collection->id)
                                         <form wire:submit="saveRename" class="flex min-w-0 flex-1 items-center gap-1 py-0.5">
                                             <label for="panel-rename" class="sr-only">New name</label>
-                                            <input id="panel-rename" type="text" wire:model="renameValue" maxlength="250" x-init="$el.focus(); $el.select()" x-on:keydown.escape="$wire.cancelRename()"
+                                            <input id="panel-rename" type="text" wire:model="renameValue" @error('renameValue') aria-invalid="true" @enderror maxlength="250" x-init="$el.focus(); $el.select()" x-on:keydown.escape="$wire.cancelRename()"
                                                    class="min-w-0 flex-1 rounded border border-zinc-300 bg-surface px-1.5 py-0.5">
                                             <button type="submit" class="rounded px-1.5 py-0.5 text-xs text-accent-700 hover:bg-zinc-100">OK</button>
                                         </form>
+                                        @error('renameValue') <p role="alert" class="w-full text-xs text-red-700">{{ $message }}</p> @enderror
                                     @elseif ($row['folder'])
                                         <button type="button" class="flex min-w-0 flex-1 items-center gap-1 py-1 text-left"
                                                 x-on:click="flip(@js('f'.$row['id']), true)" x-bind:aria-expanded="isOpen(@js('f'.$row['id']), true)">
@@ -123,14 +124,14 @@
                                         </button>
                                     @else
                                         <a href="{{ $page }}?request={{ urlencode($row['id']) }}" class="flex min-w-0 flex-1 items-center gap-2 py-1"
-                                           @if ($current) x-on:click.prevent="$dispatch('open-request', { id: @js($row['id']) })" @endif>
+                                           @if ($current) x-on:click.prevent="$dispatch('open-request', { id: @js($row['id']) }); if (! matchMedia('(min-width: 48rem)').matches) document.querySelector('[data-panel-toggle]')?.click()" @endif>
                                             <span class="min-w-10 shrink-0 font-mono text-[0.65rem] font-semibold {{ $methodColour($row['method']) }}">{{ $row['method'] }}</span>
                                             <span class="truncate" title="{{ $row['name'] }}">{{ $row['name'] }}</span>
                                         </a>
                                     @endif
 
                                     @if (! ($renamingId === $row['id'] && $renamingCollectionId === $collection->id))
-                                        <details class="relative shrink-0 opacity-0 focus-within:opacity-100 group-hover:opacity-100 [&[open]]:opacity-100" x-data x-on:click.outside="$el.open = false">
+                                        <details class="relative shrink-0 opacity-0 focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 [&[open]]:opacity-100" x-data x-on:click.outside="$el.open = false" x-on:keydown.escape="$el.open = false; $el.querySelector('summary').focus()">
                                             <summary class="cursor-pointer list-none rounded p-1 text-zinc-500 hover:bg-zinc-200 [&::-webkit-details-marker]:hidden" aria-label="Actions for {{ $row['name'] }}"><x-icon name="dots" class="size-4" /></summary>
                                             <div class="absolute right-0 z-20 mt-1 grid w-40 rounded border border-zinc-200 bg-surface py-1 text-xs shadow-lg">
                                                 @if ($row['folder'])
@@ -153,7 +154,7 @@
                     </li>
                 @endforeach
             </ul>
-            <p x-show="q !== ''" x-cloak class="px-2 pt-2 text-xs text-zinc-500">Showing requests whose name contains “<span x-text="q"></span>”.</p>
+            <p x-show="q !== ''" x-cloak class="px-2 pt-2 text-xs text-zinc-600">Showing names that contain “<span x-text="q"></span>”. <button type="button" x-on:click="q = ''" class="text-accent-700 hover:underline">Clear</button></p>
         </div>
     </section>
 
@@ -166,13 +167,13 @@
         <ul class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
             @forelse ($environments as $environment)
                 @php($active = $environment->id === $activeEnvironmentId)
-                <li wire:key="panel-env-{{ $environment->id }}" @class(['group flex items-center gap-1 rounded pr-1', 'bg-accent-50' => $active, 'hover:bg-zinc-50' => ! $active])>
+                <li wire:key="panel-env-{{ $environment->id }}" @class(['group flex items-center gap-1 rounded pr-1', 'bg-accent-50' => $active, 'hover:bg-zinc-100' => ! $active])>
                     <a href="{{ route('projects.environments.show', [$project, $environment]) }}" class="min-w-0 flex-1 truncate py-1 pl-2" title="{{ $environment->name }}">{{ $environment->name }}</a>
                     @if ($environment->isProduction())
                         <span class="shrink-0 rounded bg-red-50 px-1 text-[0.65rem] font-semibold text-red-800 ring-1 ring-inset ring-red-600/30">PROD</span>
                     @endif
                     <button type="button" wire:click="chooseEnvironment({{ $environment->id }})" @disabled($active)
-                            @class(['rounded p-1', 'text-accent-700' => $active, 'text-zinc-300 hover:bg-zinc-200 hover:text-zinc-700' => ! $active])
+                            @class(['rounded p-1', 'text-accent-700' => $active, 'text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700' => ! $active])
                             aria-pressed="{{ $active ? 'true' : 'false' }}" title="{{ $active ? 'Active environment' : 'Make active' }}" aria-label="{{ $active ? $environment->name.' is active' : 'Make '.$environment->name.' active' }}">
                         <x-icon name="check" class="size-4" />
                     </button>
@@ -195,7 +196,7 @@
         <ul class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
             @forelse ($runs as $run)
                 <li wire:key="panel-run-{{ $run->id }}">
-                    <a href="{{ route('runs.show', $run) }}" class="block rounded px-2 py-1.5 hover:bg-zinc-50">
+                    <a href="{{ route('runs.show', $run) }}" class="block rounded px-2 py-1.5 hover:bg-zinc-100">
                         <span class="flex items-center gap-2">
                             <x-status-badge :status="$run->status" :no-tests="$run->hasNoTests()" />
                             <span class="min-w-0 flex-1 truncate" title="{{ $run->collection_name }} → {{ $run->environment_name }}">{{ $run->collection_name }}</span>
@@ -221,7 +222,7 @@
         <ul class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
             @forelse ($buckets as $bucket)
                 <li wire:key="panel-bucket-{{ $bucket->id }}">
-                    <a href="{{ route('projects.captures', $project) }}" class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-zinc-50">
+                    <a href="{{ route('projects.captures', $project) }}" class="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-zinc-100">
                         <span aria-hidden="true" @class(['size-2 shrink-0 rounded-full', 'bg-green-600' => $bucket->enabled, 'bg-zinc-300' => ! $bucket->enabled])></span>
                         <span class="min-w-0 flex-1 truncate" title="{{ $bucket->name }}">{{ $bucket->name }}</span>
                         <span class="shrink-0 text-xs text-zinc-500">{{ $bucket->enabled ? 'on' : 'off' }}</span>

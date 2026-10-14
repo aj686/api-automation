@@ -66,10 +66,19 @@
                 const wide = matchMedia('(min-width: 48rem)');
                 const stored = () => { try { return localStorage.getItem('sidebar') === 'closed' ? 'closed' : 'open'; } catch (e) { return 'open'; } };
                 const set = (state) => {
+                    const was = root.dataset.sidebar;
                     root.dataset.sidebar = state;
                     document.querySelectorAll('[aria-controls="project-sidebar"]').forEach((button) => {
                         button.setAttribute('aria-expanded', String(state === 'open'));
                     });
+                    // Below md the sidebar is a modal drawer: the page behind it is inert,
+                    // focus moves into it and back to the toggle when it closes (D-040).
+                    const drawer = ! wide.matches && state === 'open';
+                    document.querySelectorAll('[data-behind-drawer]').forEach((el) => { el.inert = drawer; });
+                    if (! wide.matches && was && was !== state) {
+                        if (drawer) document.querySelector('#project-sidebar a, #project-sidebar button')?.focus();
+                        else document.querySelector('[data-panel-toggle]')?.focus();
+                    }
                 };
 
                 set(wide.matches ? stored() : 'closed');
@@ -101,7 +110,7 @@
         @php($workspace = \App\Support\Workspace::current())
 
         {{-- Top bar, Postman-style (D-040): workspace switcher left, active environment right. --}}
-        <header class="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-zinc-200 bg-surface px-3">
+        <header data-behind-drawer class="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-zinc-200 bg-surface px-3">
             {{-- Below md the sidebar is a drawer; this opens it. From md up it folds the panel. --}}
             <button type="button" aria-controls="project-sidebar" aria-expanded="false" data-panel-toggle title="Show or hide the side panel"
                     class="rounded p-1.5 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900">
@@ -127,7 +136,7 @@
             <x-project-sidebar />
             <div class="sidebar-backdrop" aria-hidden="true"></div>
 
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 flex-1" data-behind-drawer>
                 @if ($workspace)
                     <x-workspace-tabs :workspace="$workspace" />
                 @endif

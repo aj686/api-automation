@@ -35,7 +35,7 @@
     <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <div class="min-w-0 flex-1">
             <h1 class="wrap-anywhere text-lg font-semibold">{{ $collection->name }}</h1>
-            <p class="font-mono text-xs text-zinc-500">{{ $collection->slug }} · {{ Str::plural('request', $requestCount, true) }}</p>
+            <p class="font-mono text-xs text-zinc-600">{{ $collection->slug }} · {{ Str::plural('request', $requestCount, true) }}</p>
         </div>
         <nav aria-label="Collection" class="flex flex-wrap items-center gap-1 text-sm">
             @if ($selectedId !== null)
@@ -75,9 +75,9 @@
     {{-- Pane (the tree is in the side panel, D-040) --}}
     <section class="min-w-0">
             @if ($pane === 'request' && $selectedId !== null)
-                {{-- Request | response: side by side from xl with a draggable divider (D-040), stacked below. --}}
-                <div wire:key="pane-request" class="xl:flex xl:items-start" x-data="splitPane('workbench-split', 55)" x-bind:style="'--split: ' + size + '%'">
-                <div class="split-left min-w-0 rounded border border-zinc-200 bg-surface p-4" aria-labelledby="request-heading">
+                {{-- Request above response; the divider between them sets the height of the request tabs (D-041). --}}
+                <div wire:key="pane-request" x-data="stackPane('workbench-request-height', 280)">
+                <div class="min-w-0 rounded border border-zinc-200 bg-surface p-4" aria-labelledby="request-heading">
                     <div class="mb-3 flex items-center gap-2">
                         <h2 id="request-heading" class="sr-only">Request</h2>
                         <label for="form-name" class="sr-only">Request name</label>
@@ -126,6 +126,7 @@
                             @endforeach
                         </div>
 
+                        <div data-stack-body class="-mx-1 overflow-y-auto px-1" x-bind:style="'height: ' + height + 'px'">
                         {{-- Params --}}
                         <div role="tabpanel" id="panel-params" aria-labelledby="tab-params" x-show="tab === 'params'">
                             @include('livewire.partials.key-value-rows', ['list' => 'params', 'rows' => $form['params'], 'addLabel' => 'Add parameter', 'empty' => 'No query parameters.'])
@@ -218,18 +219,19 @@
                                 so Send Login once and the next requests can use <code>@{{token}}</code>. <code>pm.collectionVariables.set()</code> and <code>pm.globals.set()</code> are not kept — use <code>pm.environment.set()</code>.
                             </p>
                         </div>
+                        </div>
                     </div>
                 </div>
 
-                <div role="separator" aria-orientation="vertical" aria-label="Resize request and response" tabindex="0"
-                     x-bind:aria-valuenow="Math.round(size)" aria-valuemin="25" aria-valuemax="75"
-                     x-on:pointerdown="start($event)" x-on:keydown.left.prevent="nudge(-5)" x-on:keydown.right.prevent="nudge(5)" x-on:dblclick="size = 55; nudge(0)"
-                     class="split-handle hidden xl:block" title="Drag to resize · double-click to reset"></div>
+                <div role="separator" aria-orientation="horizontal" aria-label="Resize request and response" tabindex="0"
+                     x-bind:aria-valuenow="Math.round(height)" aria-valuemin="80"
+                     x-on:pointerdown="start($event)" x-on:keydown.up.prevent="nudge(-40)" x-on:keydown.down.prevent="nudge(40)" x-on:dblclick="reset()"
+                     class="stack-handle" title="Drag to resize · double-click to reset"></div>
 
                 {{-- Send result --}}
-                <div class="mt-4 min-w-0 xl:mt-0 xl:flex-1">
+                <div class="min-w-0">
                 @if (! $sendRun)
-                    <div class="hidden rounded border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 xl:block">
+                    <div class="rounded border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
                         <p class="font-medium text-zinc-700">Response</p>
                         <p class="mt-1">Press Send to see the response here.</p>
                     </div>
@@ -275,7 +277,7 @@
 
                         <ol wire:sort="sortSequence" class="mb-4 divide-y divide-zinc-100 rounded border border-zinc-200" aria-label="Requests in run order">
                             @foreach ($sequence as $i => $row)
-                                <li wire:key="seq-{{ $row['id'] }}" wire:sort:item="{{ $row['id'] }}" class="flex items-center gap-2 bg-surface px-2 py-1.5">
+                                <li wire:key="seq-{{ $row['id'] }}" wire:sort:item="{{ $row['id'] }}" class="flex items-center gap-2 bg-surface-solid px-2 py-1.5">
                                     <span wire:sort:handle class="cursor-grab touch-none select-none px-2 py-1 text-zinc-400" aria-hidden="true" title="Drag to reorder">⠿</span>
                                     <span class="min-w-8 shrink-0 text-right tabular-nums text-zinc-500">{{ $i + 1 }}</span>
                                     <input type="checkbox" id="seq-{{ $i }}" wire:model.live="sequence.{{ $i }}.checked" class="shrink-0">

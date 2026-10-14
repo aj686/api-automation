@@ -2,7 +2,7 @@
     <x-flash />
 
     <h1 class="wrap-anywhere text-lg font-semibold">{{ $project->name }}</h1>
-    <p class="mb-4 font-mono text-xs text-zinc-500">{{ $project->slug }}</p>
+    <p class="mb-4 font-mono text-xs text-zinc-600">{{ $project->slug }}</p>
 
     <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
     <section aria-labelledby="run-panel" class="rounded border border-zinc-200 bg-surface p-4">

@@ -17,18 +17,19 @@ const write = (key, value) => {
 }
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 
-// Drags a vertical handle; calls onMove(clientX) and onEnd(). Text selection
-// and transitions are off while dragging (html.resizing in app.css).
-const drag = (event, onMove, onEnd) => {
+// Drags a handle; calls onMove(clientX, clientY) and onEnd(). Text selection
+// and transitions are off while dragging (html.resizing in app.css); rows =
+// an up/down divider (row-resize cursor).
+const drag = (event, onMove, onEnd, rows = false) => {
     if (event.button !== 0) return
     event.preventDefault()
     const root = document.documentElement
-    root.classList.add('resizing')
-    const move = (e) => onMove(e.clientX)
+    root.classList.add('resizing', ...(rows ? ['resizing-rows'] : []))
+    const move = (e) => onMove(e.clientX, e.clientY)
     const up = () => {
         removeEventListener('pointermove', move)
         removeEventListener('pointerup', up)
-        root.classList.remove('resizing')
+        root.classList.remove('resizing', 'resizing-rows')
         onEnd()
     }
     addEventListener('pointermove', move)
@@ -62,33 +63,58 @@ document.addEventListener('alpine:init', () => {
         },
     }))
 
-    // Two panes side by side with a draggable divider; size = left pane in %.
-    window.Alpine.data('splitPane', (key, initial = 55) => ({
-        size: clamp(read(key, initial), 25, 75),
+    // Request above response: drag the divider to set the height (px) of the
+    // request's tab area ([data-stack-body]); the header above it never shrinks.
+    window.Alpine.data('stackPane', (key, initial = 280) => ({
+        height: clamp(read(key, initial), 80, 2000),
+        max() {
+            return Math.max(80, Math.round(window.innerHeight * 0.85))
+        },
         start(event) {
-            const box = this.$root.getBoundingClientRect()
-            drag(event, (x) => {
-                this.size = clamp(((x - box.left) / box.width) * 100, 25, 75)
-            }, () => write(key, Math.round(this.size)))
+            const from = event.clientY - this.height
+            drag(event, (x, y) => {
+                this.height = clamp(y - from, 80, this.max())
+            }, () => write(key, Math.round(this.height)), true)
         },
         nudge(step) {
-            this.size = clamp(this.size + step, 25, 75)
-            write(key, Math.round(this.size))
+            this.height = clamp(this.height + step, 80, this.max())
+            write(key, Math.round(this.height))
+        },
+        reset() {
+            this.height = initial
+            write(key, initial)
         },
     }))
 
     // <x-dropdown>: a styled single select (resources/views/components/dropdown.blade.php).
-    window.Alpine.data('dropdown', (items, placeholder) => ({
+    // The list is teleported to <body> and placed under the button (or above it
+    // when there is no room below); it closes on scroll and resize.
+    window.Alpine.data('dropdown', (items, placeholder, id, align = 'left') => ({
         items,
         placeholder,
         value: null,
         open: false,
         active: -1,
+        position: '',
         get current() {
             return this.items.find((item) => this.same(item.value)) ?? null
         },
         same(value) {
             return this.value !== null && this.value !== undefined && String(value) === String(this.value)
+        },
+        list() {
+            return document.getElementById(id + '-list')
+        },
+        place() {
+            const r = this.$refs.button.getBoundingClientRect()
+            const below = window.innerHeight - r.bottom
+            const vertical = below < 220 && r.top > below
+                ? 'bottom: ' + (window.innerHeight - r.top + 4) + 'px; max-height: ' + Math.min(288, r.top - 8) + 'px;'
+                : 'top: ' + (r.bottom + 4) + 'px; max-height: ' + Math.min(288, below - 8) + 'px;'
+            const horizontal = align === 'right'
+                ? 'right: ' + (window.innerWidth - r.right) + 'px;'
+                : 'left: ' + r.left + 'px;'
+            this.position = vertical + ' ' + horizontal + ' min-width: ' + r.width + 'px;'
         },
         toggle() {
             this.open ? this.close(true) : this.show(0)
@@ -96,15 +122,17 @@ document.addEventListener('alpine:init', () => {
         show(step) {
             const selected = this.items.findIndex((item) => this.same(item.value))
             this.active = selected >= 0 ? selected : step < 0 ? this.items.length - 1 : 0
+            this.place()
             this.open = true
             this.$nextTick(() => {
-                this.$refs.list.focus()
-                this.$refs.list.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' })
+                if (! this.open) return // closed again before this ran (fast Esc)
+                this.list()?.focus()
+                this.list()?.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' })
             })
         },
         move(step) {
             this.active = (this.active + step + this.items.length) % this.items.length
-            this.$nextTick(() => this.$refs.list.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' }))
+            this.$nextTick(() => this.list()?.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' }))
         },
         choose(item) {
             if (! item) return
@@ -179,7 +207,8 @@ document.addEventListener('alpine:init', () => {
             window.location.href = home
         },
         scroll(direction) {
-            this.$refs.strip.scrollBy({ left: direction * 240, behavior: 'smooth' })
+            const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+            this.$refs.strip.scrollBy({ left: direction * 240, behavior: reduced ? 'auto' : 'smooth' })
         },
         reveal() {
             this.$refs.strip?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })

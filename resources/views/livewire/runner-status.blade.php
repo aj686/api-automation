@@ -15,7 +15,7 @@
         @endunless
     @else
         <span class="inline-flex items-center gap-1.5 text-sm {{ $alive ? 'text-green-800' : 'text-amber-900' }}">
-            <span aria-hidden="true">{{ $alive ? '●' : '⚠' }}</span>{{ $alive ? 'Runner OK' : 'Runner down' }}
+            <span aria-hidden="true">{{ $alive ? '●' : '⚠' }}</span><span class="max-sm:sr-only">{{ $alive ? 'Runner OK' : 'Runner down' }}</span>
         </span>
     @endif
 </div>

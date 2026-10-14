@@ -12,7 +12,7 @@
                if (document.documentElement.dataset.sidebar === 'closed') document.querySelector('[data-panel-toggle]')?.click();
            },
        }">
-    <nav aria-label="Main" class="flex w-[4.75rem] shrink-0 flex-col items-stretch gap-0.5 border-r border-zinc-200 px-1 py-2">
+    <nav aria-label="Main" class="flex min-h-0 w-[4.75rem] shrink-0 flex-col overflow-y-auto items-stretch gap-0.5 border-r border-zinc-200 px-1 py-2">
         @if ($workspace)
             @php($onOverview = request()->routeIs('projects.show'))
             <a href="{{ route('projects.show', $workspace) }}" title="Overview: run tests, project details"
@@ -20,12 +20,12 @@
                @class(['rail-item', 'rail-item-active' => $onOverview])>
                 <x-icon name="overview" /><span>Overview</span>
             </a>
-            @foreach ($sections as $key => [$label, $icon])
-                <button type="button" x-on:click="pick('{{ $key }}')" title="{{ $label }}"
+            @foreach ($sections as $key => [$label, $icon, $short])
+                <button type="button" x-on:click="pick('{{ $key }}')" title="{{ $label }}" aria-label="{{ $label }}"
                         x-bind:aria-pressed="section === '{{ $key }}'"
                         x-bind:class="section === '{{ $key }}' ? 'rail-item rail-item-active' : 'rail-item'"
                         class="rail-item" aria-controls="sidebar-panel">
-                    <x-icon :name="$icon" /><span>{{ $label }}</span>
+                    <x-icon :name="$icon" /><span>{{ $short }}</span>
                 </button>
             @endforeach
         @endif
@@ -85,6 +85,6 @@
     <div role="separator" aria-orientation="vertical" aria-label="Resize the side panel" tabindex="0"
          x-bind:aria-valuenow="width" aria-valuemin="200" aria-valuemax="560"
          x-on:pointerdown="start($event)" x-on:keydown.left.prevent="nudge(-16)" x-on:keydown.right.prevent="nudge(16)"
-         class="panel-resizer" title="Drag to resize · drag far left to close"></div>
+         class="panel-resizer max-md:hidden" title="Drag to resize · drag far left to close"></div>
     </div>
 </aside>

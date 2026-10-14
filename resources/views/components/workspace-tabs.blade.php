@@ -13,13 +13,13 @@
         <span hidden x-init="$nextTick(() => $dispatch('tab-gone', @js(session('tab_gone'))))"></span>
     @endif
     <button type="button" x-on:click="scroll(-1)" class="shrink-0 px-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" aria-label="Scroll tabs left">‹</button>
-    <div x-ref="strip" role="tablist" aria-label="Open tabs" class="tab-strip flex min-w-0 flex-1 overflow-x-auto">
+    <nav x-ref="strip" aria-label="Open tabs" class="tab-strip flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
         <template x-for="tab in tabs" :key="tab.key">
             <div class="group relative flex max-w-[13rem] shrink-0 items-center border-r border-zinc-200"
                  x-bind:data-active="tab.key === active"
-                 x-bind:class="tab.key === active ? 'bg-zinc-50 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-50'">
+                 x-bind:class="tab.key === active ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-100'">
                 <span x-show="tab.key === active" class="absolute inset-x-0 top-0 h-0.5 bg-accent-600"></span>
-                <a x-bind:href="tab.url" role="tab" x-bind:aria-selected="tab.key === active" x-bind:title="tab.label"
+                <a x-bind:href="tab.url" x-bind:aria-current="tab.key === active ? 'page' : null" x-bind:title="tab.label" x-on:keydown.delete.prevent="close(tab)"
                    x-on:click.prevent="go(tab)" x-on:auxclick.prevent="$event.button === 1 && close(tab)"
                    class="flex min-w-0 items-center gap-1.5 py-2 pl-3 pr-1">
                     <template x-if="tab.kind === 'request'">
@@ -32,16 +32,17 @@
                     <template x-if="tab.kind === 'environment'"><x-icon name="environment" class="size-4 text-zinc-500" /></template>
                     <template x-if="tab.kind === 'run'"><x-icon name="history" class="size-4 text-zinc-500" /></template>
                     <span class="truncate" x-text="tab.label"></span>
+                    <span x-show="tab.unsaved" class="sr-only">, unsaved changes</span>
                 </a>
-                <span x-show="tab.unsaved" class="size-2 shrink-0 rounded-full bg-orange-500" title="Unsaved changes" aria-label="Unsaved changes"></span>
-                <button type="button" x-on:click="close(tab)" x-bind:aria-label="'Close ' + tab.label"
-                        x-bind:class="tab.key === active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'"
+                <span x-show="tab.unsaved" class="size-2 shrink-0 rounded-full bg-orange-500" title="Unsaved changes" aria-hidden="true"></span>
+                <button type="button" tabindex="-1" x-on:click="close(tab)" x-bind:aria-label="'Close ' + tab.label"
+                        x-bind:class="tab.key === active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100 pointer-coarse:opacity-100'"
                         class="mx-1 shrink-0 rounded px-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900">×</button>
             </div>
         </template>
-    </div>
+    </nav>
     <button type="button" x-on:click="scroll(1)" class="shrink-0 px-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" aria-label="Scroll tabs right">›</button>
-    <details class="relative shrink-0 border-l border-zinc-200" x-on:click.outside="$el.open = false">
+    <details class="relative shrink-0 border-l border-zinc-200" x-on:click.outside="$el.open = false" x-on:keydown.escape="$el.open = false; $el.querySelector('summary').focus()">
         <summary class="flex h-full cursor-pointer list-none items-center px-2 text-zinc-500 hover:bg-zinc-100 [&::-webkit-details-marker]:hidden" aria-label="Tab actions"><x-icon name="chevron-down" class="size-4" /></summary>
         <div class="absolute right-0 z-40 mt-1 grid w-44 rounded border border-zinc-200 bg-surface py-1 text-xs shadow-lg">
             <button type="button" x-on:click="closeOthers(); $el.closest('details').open = false" class="px-3 py-1.5 text-left hover:bg-zinc-100">Close other tabs</button>

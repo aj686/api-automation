@@ -21,6 +21,11 @@ page.on('console', (m) => {
   problems.push('console: ' + m.text() + (m.location().url ? ' (' + m.location().url + ')' : ''));
 });
 page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));
+// E2E_DEBUG=1: print every Livewire call (methods only, never payloads) and its HTTP status.
+if (process.env.E2E_DEBUG) {
+  page.on('request', (r) => { if (r.url().includes('/livewire') && r.method() === 'POST') { const m = (r.postData() || '').match(/"method":"[a-zA-Z]+"/g); console.log('   -> livewire', m ? m.join(',') : '(property updates)'); } });
+  page.on('response', (r) => { if (r.url().includes('/livewire') && r.request().method() === 'POST') console.log('   <-', r.status()); });
+}
 
 let n = 0;
 const shot = async (name) => page.screenshot({ path: `/out/${String(++n).padStart(2, '0')}-${name}.png`, fullPage: true });
@@ -169,8 +174,8 @@ try {
     await tree.getByText('Unknown API path is a clean 404').waitFor();
     await tree.getByRole('link', { name: /Health page/ }).click();
     await page.waitForFunction(() => document.querySelector('#form-name')?.value === 'Health page', null, { timeout: 10000 });
-    const openTabs = page.getByRole('tablist', { name: 'Open tabs' });
-    await openTabs.getByRole('tab', { name: /Health page/ }).waitFor({ timeout: 5000 });
+    const openTabs = page.getByRole('navigation', { name: 'Open tabs' });
+    await openTabs.getByRole('link', { name: /Health page/ }).waitFor({ timeout: 5000 });
 
     for (const tab of ['Authorization', 'Headers', 'Body']) {
       await page.getByRole('tab', { name: new RegExp('^' + tab) }).click();
@@ -181,7 +186,8 @@ try {
 
     await page.locator('#form-name').fill('Health page (edited)');
     await page.locator('#form-name').blur();
-    await expectText('Unsaved');
+    // In the page, not the tab bar (its hidden ", unsaved changes" label also matches).
+    await page.locator('#main').getByText('Unsaved').first().waitFor({ timeout: 15000 });
     await page.keyboard.press('Control+s');
     await expectText('Saved Health page (edited).');
 
@@ -195,7 +201,7 @@ try {
   await step('runner: drag, untick, move up, stop on error, run in the chosen order (D-038)', async () => {
     await page.getByRole('navigation', { name: 'Collection' }).getByRole('button', { name: /Runner/ }).click();
     await expectText('Run 3 of 3 requests');
-    await page.getByRole('tablist', { name: 'Open tabs' }).getByRole('tab', { name: /Runner/ }).waitFor({ timeout: 5000 });
+    await page.getByRole('navigation', { name: 'Open tabs' }).getByRole('link', { name: /Runner/ }).waitFor({ timeout: 5000 });
     const rows = page.locator('ol[aria-label="Requests in run order"] > li');
     const order = async () => (await rows.allInnerTexts()).map((t) => (t.match(/(Health page \(edited\)|API refuses a call without a token|Unknown API path is a clean 404)/) || [t])[0]);
 
@@ -236,11 +242,11 @@ try {
 
   await step('workspace: close a tab, drag the side panel and the request/response divider (D-040)', async () => {
     await page.goto(`${BASE}/projects/${SLUG}/collections/api-automation-self-check?pane=runner`);
-    const openTabs = page.getByRole('tablist', { name: 'Open tabs' });
-    await openTabs.getByRole('tab', { name: /Runner/ }).waitFor({ timeout: 5000 });
-    const before = await openTabs.getByRole('tab').count();
+    const openTabs = page.getByRole('navigation', { name: 'Open tabs' });
+    await openTabs.getByRole('link', { name: /Runner/ }).waitFor({ timeout: 5000 });
+    const before = await openTabs.getByRole('link').count();
     await page.getByRole('button', { name: /^Close Runner/ }).click();
-    await page.waitForFunction((n) => document.querySelectorAll('[aria-label="Open tabs"] [role="tab"]').length === n - 1, before, { timeout: 10000 });
+    await page.waitForFunction((n) => document.querySelectorAll('nav[aria-label="Open tabs"] a').length === n - 1, before, { timeout: 10000 });
 
     const width = async () => (await page.locator('#sidebar-panel').boundingBox()).width;
     const start = await width();
@@ -249,15 +255,19 @@ try {
     await page.mouse.move(sep.x + 90, sep.y + 200, { steps: 8 }); await page.mouse.up();
     if ((await width()) < start + 60) throw new Error(`side panel did not widen (${start} → ${await width()})`);
 
-    await page.locator('[aria-label="Open tabs"] [role="tab"]', { hasText: 'Health page' }).first().click();
+    await page.locator('nav[aria-label="Open tabs"] a', { hasText: 'Health page' }).first().click();
     const split = page.getByRole('separator', { name: 'Resize request and response' });
     await split.waitFor({ timeout: 10000 });
-    const left = async () => (await page.locator('.split-left').boundingBox()).width;
-    const l0 = await left();
+    // Response sits under the request; dragging the divider down makes the request taller.
+    const body = page.locator('[data-stack-body]');
+    const h0 = (await body.boundingBox()).height;
     const s = await split.boundingBox();
-    await page.mouse.move(s.x + s.width / 2, s.y + 40); await page.mouse.down();
-    await page.mouse.move(s.x + 120, s.y + 40, { steps: 8 }); await page.mouse.up();
-    if ((await left()) < l0 + 60) throw new Error(`request pane did not widen (${l0} → ${await left()})`);
+    const response = await page.locator('[aria-label="Resize request and response"] + div').boundingBox();
+    if (response.y < s.y + s.height) throw new Error('response is not below the request');
+    await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2); await page.mouse.down();
+    await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2 + 100, { steps: 8 }); await page.mouse.up();
+    const h1 = (await body.boundingBox()).height;
+    if (h1 < h0 + 60) throw new Error(`request pane did not grow (${h0} → ${h1})`);
     await shot('workspace');
   });
 

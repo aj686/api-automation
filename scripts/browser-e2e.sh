@@ -44,7 +44,7 @@ docker run --rm --init --ipc=host \
     --network docker-webstack_docker_webstack \
     --add-host api-automation.local:host-gateway \
     -v "$APP/tests/browser:/browser:ro" -v "$APP/demo:/demo:ro" -v "$OUT:/out" \
-    -e PW_VERSION="$PW_VERSION" -e E2E_THEME="${E2E_THEME:-}" \
+    -e PW_VERSION="$PW_VERSION" -e E2E_THEME="${E2E_THEME:-}" -e E2E_DEBUG="${E2E_DEBUG:-}" \
     -e E2E_HOT_ORIGIN="$( [ "${E2E_ALLOW_HOT:-0}" = "1" ] && cat "$APP/public/hot" 2>/dev/null )" \
     --user root "$IMAGE" sh /browser/run-in-container.sh
 status=$?

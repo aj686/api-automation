@@ -16,15 +16,16 @@ use Illuminate\View\Component;
 class ProjectSidebar extends Component
 {
     /**
-     * Panel sections of a workspace: key => [label, icon].
+     * Panel sections of a workspace: key => [label, icon, rail label]. The
+     * rail is narrow and its labels stay on one line, so long names are short there.
      *
-     * @var array<string, array{string, string}>
+     * @var array<string, array{string, string, string}>
      */
     public const SECTIONS = [
-        'collections' => ['Collections', 'collection'],
-        'environments' => ['Environments', 'environment'],
-        'history' => ['History', 'history'],
-        'captures' => ['Captures', 'capture'],
+        'collections' => ['Collections', 'collection', 'Collections'],
+        'environments' => ['Environments', 'environment', 'Envs'],
+        'history' => ['History', 'history', 'History'],
+        'captures' => ['Captures', 'capture', 'Captures'],
     ];
 
     /**
