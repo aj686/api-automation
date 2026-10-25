@@ -1,0 +1,98 @@
+# Run API Automation on your own machine:
+#   docker compose up -d --build      then open http://localhost:8080
+#
+# The UI has no login, so the port is bound to 127.0.0.1: only this computer
+# can open it. To use another port: APP_PORT=9000 docker compose up -d
+#
+# APP_KEY and the API token live in the storage volume, not here: they are
+# created on first start (see docker/entrypoint.sh). Compose reads nothing
+# else from a .env next to this file, so a Laravel .env here does not leak in.
+
+name: api-automation
+
+x-app-environment: &app-environment
+  APP_NAME: API Automation
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: http://localhost:${APP_PORT:-8080}
+  LOG_CHANNEL: stderr
+  # MySQL is reachable only inside this compose network (not published).
+  DB_CONNECTION: mysql
+  DB_HOST: db
+  DB_PORT: "3306"
+  DB_DATABASE: api_automation
+  DB_USERNAME: api_automation
+  DB_PASSWORD: api_automation
+  SESSION_DRIVER: database
+  QUEUE_CONNECTION: database
+  CACHE_STORE: database
+  POSTMAN_CLI_PATH: postman
+  AUTOMATION_NODE_PATH: node
+  # The worker's --timeout below must stay larger than this.
+  AUTOMATION_RUN_TIMEOUT_SECONDS: "300"
+
+services:
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:80"
+    depends_on:
+      - app
+
+  app:
+    build:
+      context: .
+      target: app
+    image: api-automation-app
+    restart: unless-stopped
+    environment: *app-environment
+    volumes:
+      - storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      target: app
+    image: api-automation-app
+    restart: unless-stopped
+    # Reaps the Postman CLI child processes that queue:work spawns.
+    init: true
+    command: [php, artisan, queue:work, database, --sleep=3, --tries=1, --timeout=360]
+    environment: *app-environment
+    volumes:
+      - storage:/var/www/html/storage
+    # Lets runs reach an API on this computer: http://host.docker.internal:<port>
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: api_automation
+      MYSQL_USER: api_automation
+      MYSQL_PASSWORD: api_automation
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: [CMD, mysqladmin, ping, -h, 127.0.0.1, -uapi_automation, -papi_automation]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  db:
+  storage:

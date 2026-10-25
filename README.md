@@ -8,6 +8,46 @@ press Run, and read the result. Runs are stored so you can see what passed,
 what failed, and why. Optionally, n8n can trigger the same runs on a schedule
 or from a webhook.
 
+## Quick start
+
+You need Docker (Docker Desktop on Windows or macOS, Docker Engine with the
+Compose plugin on Linux), about 4 GB of free memory, and port 8080.
+
+```bash
+git clone https://github.com/aj686/api-automation.git
+cd api-automation
+docker compose up -d --build
+```
+
+The first build takes 5–10 minutes. Then open http://localhost:8080; the top
+bar shows **Runner OK** once the worker is up.
+
+**First run:** create a project; add an environment and *Import from Postman*
+`demo/environments/docker-compose.postman_environment.json`; on the
+Collections tab import `demo/collections/api-automation-self-check.postman_collection.json`;
+press **Run**. Expected: **PASS 6/6**.
+
+| To | Run |
+|---|---|
+| use another port | `APP_PORT=9000 docker compose up -d` (or `APP_PORT=9000` in a `.env` file next to `docker-compose.yml`) |
+| stop / start again | `docker compose stop` / `docker compose start` |
+| update | `git pull && docker compose up -d --build` (migrations run on start) |
+| see the logs | `docker compose logs -f app worker` |
+| enable the API for n8n | `docker compose exec app php artisan automation:token` |
+| delete everything, data included | `docker compose down -v` |
+
+**Testing an API on your own computer:** inside the containers, `localhost`
+is the container itself. Use `http://host.docker.internal:<port>` as the base
+URL, e.g. `http://host.docker.internal:3000`.
+
+**No login.** The UI has no password, so the port is bound to `127.0.0.1` and
+only your own computer can open it. Keep it that way unless you put your own
+authentication in front.
+
+Your data lives in two Docker volumes, `db` and `storage`. The application key
+(which encrypts secret variables) and the API token are created on first start
+and kept in `storage`.
+
 ## Screenshots
 
 **Project overview** — pick an environment and a collection, press Run, see
@@ -53,8 +93,10 @@ author and debug collections. Postman CLI stays the thing that executes them.
 n8n stays the scheduler. This application manages, runs, stores and displays —
 nothing more.
 
-So there is no request editor, no test-scripting engine, no variable engine, no
-custom scheduler, and no custom execution engine.
+It does have a request editor with **Send** and a Runner with **Run sequence**,
+for convenience, but every request still runs in Postman CLI. There is no HTTP
+client, test-scripting engine, variable engine, scheduler or execution engine
+of its own.
 
 ## How it works
 
@@ -177,9 +219,15 @@ cannot be created for production environments.
   default, record credential headers as `[present]` only, and cannot exist for
   production environments.
 
-Details, and what is *not* protected: `docs/security.md` (project folder).
+**Not protected:** anyone who can open the UI can do everything in it (there is
+no login), and anyone with access to the machine can read the application key
+and so decrypt the secrets.
 
-## Running it
+## Advanced: run it inside an existing Docker stack
+
+The [Quick start](#quick-start) is the easy way. This section is for adding the
+app to a Docker stack you already run (shared nginx, MySQL, PHP-FPM), with the
+code mounted from the host so you can develop on it.
 
 The app is a plain Laravel app plus one queue worker that has Postman CLI
 installed. It runs in any Docker setup that provides the pieces below. The
@@ -382,7 +430,7 @@ PHP-FPM container, `api-automation-worker` the worker.
    `127.0.0.1 api-automation.local`. Open http://api-automation.local. The
    top bar shows **Runner OK** once the worker is up.
 
-Optional: `php artisan automation:token` for n8n (`docs/n8n.md`, project folder).
+Optional: `php artisan automation:token` enables the `/api/v1` API for n8n.
 
 After changing PHP code, restart the worker (`docker restart api-automation-worker`):
 `queue:work` keeps the old code in memory.
@@ -402,8 +450,10 @@ this README.
 1. **Projects → New project.**
 2. **Environments** tab → create one (e.g. *Staging*) → add variables, or
    *Import from Postman* an exported environment. Mark credentials **secret**.
-   From the runner container, sites in the same webstack are reached as
-   `http://nginx` plus a `Host` header — not `localhost`.
+   From the runner container, `localhost` is the container itself: use
+   `http://host.docker.internal:<port>` for an API on your computer, or the
+   service name for another container (in docker-webstack: `http://nginx`
+   plus a `Host` header).
 3. **Collections** tab → import a Postman **v2.1** collection export.
 4. **Overview** → pick environment and collection → **▶ Run**.
 5. Open the run: status, every assertion, the redacted execution log. **Runs**
@@ -411,10 +461,14 @@ this README.
 6. Outbound: **Captures** tab → create and enable a capture URL, point the API's
    outgoing webhook/gateway URL at it (test environments only), assert in Postman.
 
-`demo/` has a collection and environment that test this app itself (expected
-**PASS 6/6**) and an outbound demo (`demo/README.md`).
+`demo/` has a collection that tests this app itself (expected **PASS 6/6**),
+with one environment file for the Quick start and one for docker-webstack, and
+an outbound demo (`demo/README.md`).
 
 ## Testing
+
+These need the development setup from the Advanced section; the Quick start
+image is built without development dependencies.
 
 ```bash
 docker exec -w $APP php8.3.fpm php artisan test              # unit + feature (real-CLI test skipped)
@@ -424,26 +478,19 @@ sh scripts/browser-e2e.sh                                    # whole UI in real 
 
 Tests refuse to run unless the database name ends in `_testing`. Report parsing
 is tested against real Postman CLI 1.71.0 output (`scripts/verify-postman-cli.sh`,
-`tests/fixtures/postman`). See `docs/development.md`.
+`tests/fixtures/postman`).
 
 ## Status
 
 Version 1 is complete: projects, environments with encrypted secret variables,
-Postman collection and environment import, runs executed by Postman CLI in the
-worker (cancel, timeout, recovery), run history with per-assertion results and
-a redacted log, the n8n API with an example workflow verified in n8n 2.42.6,
-and outbound capture.
+Postman collection and environment import, a request editor with Send and Run
+sequence, runs executed by Postman CLI in the worker (cancel, timeout,
+recovery), run history with per-assertion results and a redacted log, the n8n
+API (verified with n8n 2.42.6), and outbound capture.
 
-Known limits are listed in `docs/security.md` and `docs/architecture.md`;
-notably, the UI has no login, so do not store real credentials while port 80
-is reachable from other devices on your network.
-
-## Documentation
-
-In the project folder's `docs/`: `setup-mysql.md`, `architecture.md`,
-`security.md`, `development.md`, `troubleshooting.md`, `n8n.md` (API contract
-and workflow), `decisions.md` (every decision and how it was verified).
+Main known limit: the UI has no login, so keep it reachable from your own
+computer only before you store real credentials.
 
 ## Licence
 
-No licence chosen yet. All rights reserved by default.
+[MIT](LICENSE) © 2026 aj686
