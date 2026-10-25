@@ -1,8 +1,13 @@
 # Run API Automation on your own machine:
-#   docker compose up -d --build      then open http://localhost:8080
+#   docker compose up -d      then open http://localhost:8080
+#
+# Compose downloads the ready-made images from ghcr.io (published for every
+# release by .github/workflows/docker-publish.yml). If it cannot, it builds
+# them from the Dockerfile; `docker compose up -d --build` always builds.
 #
 # The UI has no login, so the port is bound to 127.0.0.1: only this computer
 # can open it. To use another port: APP_PORT=9000 docker compose up -d
+# A fixed release instead of the newest: API_AUTOMATION_VERSION=1.0.0
 #
 # APP_KEY and the API token live in the storage volume, not here: they are
 # created on first start (see docker/entrypoint.sh). Compose reads nothing
@@ -36,6 +41,7 @@ services:
     build:
       context: .
       target: web
+    image: ghcr.io/aj686/api-automation-web:${API_AUTOMATION_VERSION:-latest}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${APP_PORT:-8080}:80"
@@ -46,7 +52,7 @@ services:
     build:
       context: .
       target: app
-    image: api-automation-app
+    image: ghcr.io/aj686/api-automation:${API_AUTOMATION_VERSION:-latest}
     restart: unless-stopped
     environment: *app-environment
     volumes:
@@ -59,7 +65,7 @@ services:
     build:
       context: .
       target: app
-    image: api-automation-app
+    image: ghcr.io/aj686/api-automation:${API_AUTOMATION_VERSION:-latest}
     restart: unless-stopped
     # Reaps the Postman CLI child processes that queue:work spawns.
     init: true

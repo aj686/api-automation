@@ -16,11 +16,13 @@ Compose plugin on Linux), about 4 GB of free memory, and port 8080.
 ```bash
 git clone https://github.com/aj686/api-automation.git
 cd api-automation
-docker compose up -d --build
+docker compose up -d
 ```
 
-The first build takes 5–10 minutes. Then open http://localhost:8080; the top
-bar shows **Runner OK** once the worker is up.
+Compose downloads the ready-made images from the GitHub Container Registry
+(`ghcr.io/aj686/api-automation`, published for every release); if it cannot,
+it builds them from the `Dockerfile` instead (5–10 minutes). Then open
+http://localhost:8080; the top bar shows **Runner OK** once the worker is up.
 
 **First run:** create a project; add an environment and *Import from Postman*
 `demo/environments/docker-compose.postman_environment.json`; on the
@@ -31,7 +33,9 @@ press **Run**. Expected: **PASS 6/6**.
 |---|---|
 | use another port | `APP_PORT=9000 docker compose up -d` (or `APP_PORT=9000` in a `.env` file next to `docker-compose.yml`) |
 | stop / start again | `docker compose stop` / `docker compose start` |
-| update | `git pull && docker compose up -d --build` (migrations run on start) |
+| update | `git pull && docker compose pull && docker compose up -d` (migrations run on start) |
+| stay on one release | `API_AUTOMATION_VERSION=1.0.0 docker compose up -d` |
+| build the images yourself (after changing code) | `docker compose up -d --build` |
 | see the logs | `docker compose logs -f app worker` |
 | enable the API for n8n | `docker compose exec app php artisan automation:token` |
 | delete everything, data included | `docker compose down -v` |
