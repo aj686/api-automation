@@ -181,36 +181,221 @@ Details, and what is *not* protected: `docs/security.md` (project folder).
 
 ## Running it
 
-Built for the `docker-webstack` stack on WSL (nginx, `php8.3.fpm`, MySQL 8, a
-Docker network `docker_webstack`). Layout:
+The app is a plain Laravel app plus one queue worker that has Postman CLI
+installed. It runs in any Docker setup that provides the pieces below. The
+setup used to build it is described first, then what to copy into your own.
+
+### The setup used here: docker-webstack on WSL
+
+Developed and tested on **docker-webstack**, a shared Docker Compose stack for
+several PHP projects, running in WSL 2 (Ubuntu) on Windows. Every project lives
+under `~/docker-webstack/projects/`, which each container mounts as
+`/var/www/projects`.
+
+| Service (container name) | Image | Role for this app |
+|---|---|---|
+| `nginx` | `nginx:latest` | web server; loads every `projects/*/nginx.conf` |
+| `php8.3.fpm` | own build from `php:8.3-fpm` | serves the UI, runs `artisan`, `composer` |
+| `mysql` | `mysql:8.0.36` | the database (`api_automation` + `api_automation_testing`) |
+| `api-automation-worker` | own build, see below | queue worker; the only place Postman CLI runs |
+| `n8n` (optional) | `n8nio/n8n:2.42.6` | schedules runs through the API |
+
+All on one Docker network (`docker_webstack`). Every published port is bound
+to `127.0.0.1` because the UI has no login. Host name: `api-automation.local`.
 
 ```text
-~/docker-webstack/projects/api-automation/       project folder — NOT in this repository
-├── nginx.conf          vhost api-automation.local (auto-loaded by webstack nginx)
-├── docker/worker/      worker image: php:8.3-cli + Node 22 + postman-cli 1.71.0
-├── docs/               setup, security, development, troubleshooting, n8n, decisions
-└── api-automation/     this repository
+~/docker-webstack/
+├── docker-compose.yml                  shared stack; the worker service is added here
+└── projects/api-automation/            project folder (not in this repository)
+    ├── nginx.conf                      vhost, auto-loaded by the nginx container
+    ├── docker/worker/Dockerfile        worker image
+    └── api-automation/                 this repository (Laravel app root)
 ```
 
-The project-folder files are kept on the machine, not in Git. On a fresh setup:
+The project-folder files are not versioned. Their contents are below, so you
+can recreate them in any stack.
 
-1. Clone this repository as `~/docker-webstack/projects/api-automation/api-automation`
-   and put the vhost and worker files in the project folder.
-2. Create the databases and user — `docs/setup-mysql.md`.
-3. In the app root: `cp .env.example .env` and fill in `DB_PASSWORD`. Then
-   (`APP=/var/www/projects/api-automation/api-automation`):
+### What your Docker setup needs
+
+| Piece | Requirement |
+|---|---|
+| PHP-FPM | PHP **8.3+** with `pdo_mysql`, `mbstring`, `intl`, `bcmath`, `zip` (plus Laravel's defaults); Composer |
+| Web server | document root `public/`, every path not found passed to `index.php` |
+| Database | MySQL 8, two databases; the test one's name must end in `_testing` |
+| Worker | PHP 8.3 **CLI** with the same extensions + `pcntl`, **Node 22**, `postman-cli` **1.71.0** (pinned: the report parser is tested against this version) |
+| Shared code | PHP-FPM and the worker mount the **same** app folder: uploaded collections are written by the web side and read by the worker from `storage/` |
+| Network | PHP-FPM and the worker can both reach MySQL; the worker can reach the APIs you test |
+| Node for assets | any container with Node to run `npm run build` once (the worker has it) |
+
+Redis is not needed: the queue, cache and sessions use the database.
+
+### 1. Worker image
+
+`docker/worker/Dockerfile` (in your stack, anywhere you can build from):
+
+```dockerfile
+# Queue worker + Postman CLI. php:8.3-cli, not -fpm: this only runs artisan.
+FROM php:8.3-cli
+
+ENV TZ=Asia/Kuala_Lumpur
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl git gnupg libicu-dev libzip-dev unzip zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# pcntl lets queue:work handle SIGTERM, so `docker stop` does not orphan a run.
+RUN docker-php-ext-configure pdo_mysql --with-pdo-mysql=mysqlnd \
+    && docker-php-ext-install -j"$(nproc)" pdo_mysql pcntl bcmath zip \
+    && docker-php-ext-configure intl --enable-intl \
+    && docker-php-ext-install -j"$(nproc)" intl
+
+# Node exists only because Postman CLI ships as an npm package.
+ARG NODE_MAJOR=22
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pinned: an unpinned CLI could change its report shape under the parser.
+ARG POSTMAN_CLI_VERSION=1.71.0
+RUN npm install -g postman-cli@${POSTMAN_CLI_VERSION} \
+    && npm cache clean --force \
+    && postman --version
+
+# Match the owner of the bind-mounted files (your user on the host).
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} app && useradd -u ${UID} -g app -m app
+
+USER app
+WORKDIR /var/www/projects/api-automation/api-automation
+```
+
+Change `TZ` to your time zone and `UID`/`GID` to your host user (`id -u`, `id -g`).
+
+### 2. Worker service
+
+Add under `services:` in your `docker-compose.yml`. Paths are for the
+docker-webstack layout; point `context` at the Dockerfile's folder and the
+volume at the folder that holds this repository.
+
+```yaml
+    api-automation-worker:
+        build:
+            context: ./projects/api-automation/docker/worker
+        container_name: "api-automation-worker"
+        user: "1000:1000"
+        restart: unless-stopped
+        # Reaps the Postman CLI child processes that queue:work spawns.
+        init: true
+        working_dir: /var/www/projects/api-automation/api-automation
+        command:
+            - php
+            - artisan
+            - queue:work
+            - database
+            - --sleep=3
+            - --tries=1
+            # Must stay above AUTOMATION_RUN_TIMEOUT_SECONDS (300) in .env.
+            - --timeout=360
+        volumes:
+            - "./projects/:/var/www/projects"   # same mount as your PHP-FPM service
+        depends_on:
+            - mysql
+        networks:
+            - docker_webstack                   # your stack's network
+```
+
+### 3. Nginx vhost
+
+```nginx
+server {
+    charset utf-8;
+    listen 80;
+    server_name api-automation.local;
+
+    root /var/www/projects/api-automation/api-automation/public;
+    index index.php;
+
+    client_max_body_size 32M;   # collection and environment uploads
+
+    location ~ /\. {
+        deny all;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php$is_args$args;
+    }
+
+    location ~ \.php$ {
+        internal;
+        fastcgi_pass php8.3.fpm:9000;   # your PHP-FPM service name
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+```
+
+`/api/*` (bearer token) and `/capture/*` (URL token) need no extra blocks.
+If your nginx protects other sites with basic auth, add `auth_basic off;` for
+those two paths: n8n and the systems that call a capture URL cannot log in.
+
+### 4. Database
+
+As MySQL root (`docker exec -it mysql mysql -u root -p`), with your own
+password in place of `YOUR_PASSWORD`:
+
+```sql
+CREATE DATABASE IF NOT EXISTS `api_automation`
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS `api_automation_testing`
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- '%': the connection comes from another container, never 'localhost'.
+CREATE USER IF NOT EXISTS 'api_automation'@'%' IDENTIFIED BY 'YOUR_PASSWORD';
+GRANT ALL PRIVILEGES ON `api_automation`.*         TO 'api_automation'@'%';
+GRANT ALL PRIVILEGES ON `api_automation_testing`.* TO 'api_automation'@'%';
+FLUSH PRIVILEGES;
+```
+
+### 5. Install
+
+Below, `$APP` is the app root inside the containers
+(`/var/www/projects/api-automation/api-automation` here), `php8.3.fpm` your
+PHP-FPM container, `api-automation-worker` the worker.
+
+1. Clone this repository into the folder your containers mount.
+2. In the app root: `cp .env.example .env`, then set `DB_PASSWORD`, and
+   `DB_HOST` / `APP_URL` if your MySQL service or host name differ.
+3. Install and migrate:
    ```bash
    docker exec -w $APP php8.3.fpm composer install
-   docker exec -w $APP php8.3.fpm php artisan key:generate   # fresh install ONLY — see security.md
+   docker exec -w $APP php8.3.fpm php artisan key:generate   # fresh install ONLY: a new key makes stored secrets unreadable
    docker exec -w $APP php8.3.fpm php artisan migrate
    ```
-4. Add the `api-automation-worker` service to `~/docker-webstack/docker-compose.yml`
-   and start it: `docker compose up -d --build api-automation-worker`.
-5. Build the front-end assets in the worker (the only container with Node):
+4. Start the worker: `docker compose up -d --build api-automation-worker`.
+5. Build the front-end assets (needs Node; the worker has it):
    `docker exec api-automation-worker npm ci && docker exec api-automation-worker npm run build`.
-6. Windows hosts file: `127.0.0.1 api-automation.local`. Open http://api-automation.local.
+6. Add the vhost and reload nginx: `docker exec nginx nginx -t && docker exec nginx nginx -s reload`.
+7. Hosts file (Windows: `C:\Windows\System32\drivers\etc\hosts`):
+   `127.0.0.1 api-automation.local`. Open http://api-automation.local. The
+   top bar shows **Runner OK** once the worker is up.
 
-Optional: `php artisan automation:token` for n8n (`docs/n8n.md`).
+Optional: `php artisan automation:token` for n8n (`docs/n8n.md`, project folder).
+
+After changing PHP code, restart the worker (`docker restart api-automation-worker`):
+`queue:work` keeps the old code in memory.
+
+**No UI login.** Bind the web port to `127.0.0.1` (`"127.0.0.1:80:80"`), or
+put your own authentication in front, before storing real credentials.
+
+### Names to change if yours differ
+
+The app itself does not depend on container names. These helpers do:
+`scripts/browser-e2e.sh` (`php8.3.fpm`, network `docker-webstack_docker_webstack`),
+the commands shown on the Settings page (`php8.3.fpm`), and the commands in
+this README.
 
 ## Using it
 
