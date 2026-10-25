@@ -8,6 +8,28 @@ press Run, and read the result. Runs are stored so you can see what passed,
 what failed, and why. Optionally, n8n can trigger the same runs on a schedule
 or from a webhook.
 
+## Screenshots
+
+**Project overview** — pick an environment and a collection, press Run, see
+recent runs.
+
+![Project overview](docs/screenshots/project-overview.png)
+
+**Request and response** — the collection tree on the left; a request sent from
+the editor shows its response under it.
+
+![Request and response](docs/screenshots/request-response.png)
+
+**Run detail** — status, counts, timings and every request with its response,
+next to the run history.
+
+![Run detail](docs/screenshots/run-detail.png)
+
+**Environment** — variables for one environment; secrets are encrypted and
+never shown again after saving.
+
+![Environment](docs/screenshots/environment.png)
+
 ## Objective
 
 Testing an API by hand gets repetitive, and the credentials needed to do it end
