@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "aj686/api-automation",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "A control center for API integration testing: projects, environments, Postman collections and run history, executed by Postman CLI.",
+    "keywords": ["api", "testing", "postman", "automation", "laravel"],
     "license": "MIT",
     "require": {
         "php": "^8.3",

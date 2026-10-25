@@ -36,7 +36,7 @@ class CollectionShowTest extends TestCase
         $this->project = Project::factory()->create(['slug' => 'demo']);
         Environment::factory()->for($this->project)->create(['name' => 'Staging', 'type' => 'staging']);
         $this->collection = app(CollectionImporter::class)->store($this->project, json_encode([
-            'info' => ['name' => 'MyPantau', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
+            'info' => ['name' => 'Sample API', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
             'item' => [
                 ['id' => 'login', 'name' => 'Login and obtain JWT', 'request' => [
                     'method' => 'POST',
@@ -49,7 +49,7 @@ class CollectionShowTest extends TestCase
                         'auth' => ['type' => 'bearer', 'bearer' => [['key' => 'token', 'value' => '{{token}}']]]]],
                 ]],
             ],
-        ]), 'mypantau.json', ['slug' => 'mypantau']);
+        ]), 'sample-api.json', ['slug' => 'sample-api']);
     }
 
     private function workbench()
@@ -64,7 +64,7 @@ class CollectionShowTest extends TestCase
 
     public function test_the_page_shows_the_tree_and_opens_the_first_request(): void
     {
-        $this->get('/projects/demo/collections/mypantau')
+        $this->get('/projects/demo/collections/sample-api')
             ->assertOk()
             ->assertSee('Login and obtain JWT')
             ->assertSee('GetProjectInfo')
@@ -77,7 +77,7 @@ class CollectionShowTest extends TestCase
             ->assertSet('form.test', 'pm.environment.set("token", pm.response.json().token);')
             ->assertSet('form.body.language', 'json');
 
-        $this->get('/projects/other/collections/mypantau')->assertNotFound();
+        $this->get('/projects/other/collections/sample-api')->assertNotFound();
     }
 
     public function test_editing_and_saving_a_request_writes_the_collection(): void
@@ -175,9 +175,9 @@ class CollectionShowTest extends TestCase
 
     public function test_download_returns_the_stored_file(): void
     {
-        $this->get('/projects/demo/collections/mypantau/download')
+        $this->get('/projects/demo/collections/sample-api/download')
             ->assertOk()
-            ->assertDownload('mypantau.postman_collection.json');
+            ->assertDownload('sample-api.postman_collection.json');
     }
 
     public function test_run_pages_show_the_sequence_and_the_runs_list_hides_sends_unless_asked(): void

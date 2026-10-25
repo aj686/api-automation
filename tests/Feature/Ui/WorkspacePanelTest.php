@@ -36,14 +36,14 @@ class WorkspacePanelTest extends TestCase
 
         $this->project = Project::factory()->create(['slug' => 'demo', 'name' => 'Demo']);
         $this->collection = app(CollectionImporter::class)->store($this->project, json_encode([
-            'info' => ['name' => 'MyPantau', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
+            'info' => ['name' => 'Sample API', 'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'],
             'item' => [
                 ['id' => 'login', 'name' => 'Login and obtain JWT', 'request' => ['method' => 'POST', 'url' => '{{base_url}}/api/login']],
                 ['id' => 'folder', 'name' => 'Projects', 'item' => [
                     ['id' => 'info', 'name' => 'GetProjectInfo', 'request' => ['method' => 'POST', 'url' => '{{base_url}}/api/project']],
                 ]],
             ],
-        ]), 'mypantau.json', ['slug' => 'mypantau']);
+        ]), 'sample-api.json', ['slug' => 'sample-api']);
     }
 
     private function panel()
@@ -59,7 +59,7 @@ class WorkspacePanelTest extends TestCase
     public function test_every_project_page_shows_the_tree_environments_and_history(): void
     {
         Environment::factory()->for($this->project)->create(['name' => 'Staging', 'type' => 'staging']);
-        Run::factory()->passed()->create(['project_id' => $this->project->id, 'collection_name' => 'MyPantau']);
+        Run::factory()->passed()->create(['project_id' => $this->project->id, 'collection_name' => 'Sample API']);
 
         $this->get('/projects/demo/environments')
             ->assertOk()
@@ -96,7 +96,7 @@ class WorkspacePanelTest extends TestCase
     {
         Livewire::test(WorkspacePanel::class, ['project' => $this->project])
             ->call('addRequest', $this->collection->id)
-            ->assertRedirectContains('/projects/demo/collections/mypantau?request=');
+            ->assertRedirectContains('/projects/demo/collections/sample-api?request=');
     }
 
     public function test_the_open_page_follows_tree_edits_and_keeps_unsaved_form_edits(): void
